@@ -15,11 +15,18 @@ jobs:
     # The type of runner that the job will run on
     runs-on: windows-latest
 
-    # Steps represent a sequence of tasks that will be executed as part of the job
+
     steps:
-      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
-      - uses: actions/checkout@v3
+    
+      - name: Checkout Repo
+        uses: actions/checkout@v3
+        with:
+          lfs: true
+      
+      - name: Checkout LFS objects
+        run: git lfs checkout
 
       # Runs a single command using the runners shell
       - name: Run a one-line script
         run: python
+      -
