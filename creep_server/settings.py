@@ -158,26 +158,6 @@ LOGGING = {
             'level': 'INFO',
             'propagate': True,
         },
-        'creep.eye': {
-            'handlers': ['console'],
-            'level': 'DEBUG',
-            'propagate': True,
-        },
-        'creep.brain': {
-            'handlers': ['console'],
-            'level': 'DEBUG',
-            'propagate': True,
-        },
-        'creep.window': {
-            'handlers': ['console'],
-            'level': 'DEBUG',
-            'propagate': True,
-        },
-        'creep_app.management.commands.run': {
-            'handlers': ['console'],
-            'level': 'DEBUG',
-            'propagate': True,
-        },
     }
 }
 

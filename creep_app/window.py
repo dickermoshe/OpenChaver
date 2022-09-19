@@ -16,7 +16,7 @@ class Window:
             self.title = self.hwnd.GetWindowText()
         except:
             logger.exception("Unable to get window title")
-            self.title = "Unknown"
+            self.title = "Unknown Title"
         
         try:
             logger.debug("Getting window PID")
