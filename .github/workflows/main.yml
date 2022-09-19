@@ -42,7 +42,17 @@ jobs:
           .\venv\Scripts\activate
           pip install --upgrade pip
           pip install -r requirements.txt
-          ./pyinstaller.ps1
+      
+      - name: Package
+        run: |
+          .\venv\Scripts\activate
+          .\pyinstaller.ps1
+      
+      - name: Upload artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: artifact
+          path: dist\*
       
 
 
