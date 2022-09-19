@@ -5,7 +5,6 @@ import numpy as np
 from PIL import Image
 
 from django.conf import settings
-model_path = settings.BASE_DIR  / 'nsfw_model' / 'detector_v2_default_checkpoint.onnx'
 
 logger = logging.getLogger(__name__)
 
@@ -61,7 +60,7 @@ def preprocess_image(
 class Detector:
     def __init__(self) -> None:
         logger.debug("Initializing Detector")
-        model_path = model_path
+        model_path = settings.BASE_DIR  / 'nsfw_model' / 'detector_v2_default_checkpoint.onnx'
 
         if not model_path.exists():
             raise FileNotFoundError(f"Model file not found: {model_path}")
