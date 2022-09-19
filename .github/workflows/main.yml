@@ -17,6 +17,10 @@ jobs:
         with:
           lfs: true
       
+      # Checkout the LFS files
+      - name: Checkout LFS Files
+        run: git lfs checkout
+
       # Pull the LFS files
       - name: Pull LFS objects
         run: git lfs pull
