@@ -11,7 +11,7 @@ from creep.heart import Heart
 logger = logging.getLogger(__name__)
 
 class Command(BaseCommand):
-    help = 'This will take pictures randomly'
+    help = 'This will take pictures every 5 hours'
 
     def handle(self, *args, **options):
         heart = Heart()
@@ -21,5 +21,5 @@ class Command(BaseCommand):
             if img is not None:
                 _, buf = cv.imencode('.jpg', img)
                 file = ContentFile(buf.tobytes(), name='image.jpg')
-                Image.objects.create(image=file)
-            time.sleep(120)
+                Image.objects.create(image=file, keep=True)
+            time.sleep(18000)

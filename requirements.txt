@@ -34,5 +34,6 @@ sqlparse==0.4.2
 sympy==1.11.1
 tzdata==2022.2
 whichcraft==0.6.1
+whitenoise==6.2.0
 zope.event==4.5.0
 zope.interface==5.4.0

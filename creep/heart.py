@@ -1,10 +1,8 @@
 import logging
 
-from .brain import Brain
 from .eye import Eye
 from .window import Window
 
-import cv2 as cv
 import numpy as np
 import time
 
@@ -13,28 +11,7 @@ logger = logging.getLogger(__name__)
 
 class Heart:
     def __init__(self) -> None:
-        self.brain = Brain()
         self.eye = Eye()
-
-    def test_brain(self):
-        try:
-            # Create a random image 1920 x 1080
-            img = np.random.randint(0, 255, (1080, 1920, 3), dtype=np.uint8)
-
-            # Composite a red and green rectangle on the image
-            cv.rectangle(img, (200, 200), (100, 100), (0, 255, 0), -1)
-            cv.rectangle(img, (500, 500), (200, 100), (0, 0, 255), -1)
-
-            # Splice image
-            imgs = self.brain.splice(img)
-
-            # Run detection
-            for img in imgs:
-                self.brain.detect(img)
-            return True
-        except:
-            logger.exception("Test failed")
-            return False
 
     def test_eye(self):
         try:

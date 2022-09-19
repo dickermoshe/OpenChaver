@@ -2,12 +2,11 @@
 import time
 import cv2 as cv
 import logging
+
 from django.core.management.base import BaseCommand
 from django.core.files.base import ContentFile
 
 from creep_app.models import Image
-
-from creep.brain import Brain
 from creep.heart import Heart
 
 

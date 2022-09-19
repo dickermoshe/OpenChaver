@@ -165,3 +165,6 @@ output/
 # Images
 *.png
 *.jpg
+
+# Static files
+/staticfiles/
