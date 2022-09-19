@@ -120,6 +120,7 @@ USE_TZ = True
 
 STATIC_URL = 'static/'
 STATIC_ROOT = BASE_DIR / "staticfiles"
+STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 
 # Media files
 MEDIA_URL = 'media/'
@@ -158,6 +159,11 @@ LOGGING = {
             'propagate': True,
         },
         'creep.eye': {
+            'handlers': ['console'],
+            'level': 'DEBUG',
+            'propagate': True,
+        },
+        'creep.brain': {
             'handlers': ['console'],
             'level': 'DEBUG',
             'propagate': True,

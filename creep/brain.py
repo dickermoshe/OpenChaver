@@ -1,8 +1,9 @@
+import logging
 import cv2 as cv
 import numpy as np
 from .nude_net import Detector
 
-
+logger = logging.getLogger(__name__)
 class Brain:
     def __init__(self):
         self.detector = Detector()
@@ -15,6 +16,7 @@ class Brain:
             is_nsfw=self._eval_results(detections, threshold=threshold),
             image=image
         )
+        logger.debug(result)
         return result
     
     def splice(self,img:np.ndarray) -> list[np.ndarray]:

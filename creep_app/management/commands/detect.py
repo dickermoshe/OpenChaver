@@ -18,23 +18,20 @@ class Command(BaseCommand):
 
         unparsed_images = Image.objects.filter(is_nsfw=None)
 
-        non_updated_images = []
-
         for unparsed_image in unparsed_images:
 
             img = cv.imdecode(np.frombuffer(unparsed_image.image.read(), np.uint8), 1)
-        
-            spliced_images = brain.splice(img)
-
-            for spliced_image in spliced_images:
-                
-                result = brain.detect(spliced_image,fast=True)
-                if result['is_nsfw'] == True:
-                    unparsed_image.is_nsfw = True
-                    break
+            
+            if brain.detect(img)['is_nsfw']:
+                unparsed_image.is_nsfw = True
             else:
-                unparsed_image.is_nsfw = False
+                spliced_images = brain.splice(img)
+                for spliced_image in spliced_images:
+                    if brain.detect(spliced_image,fast=True)['is_nsfw']:
+                        unparsed_image.is_nsfw = True
+                        break
+                else:
+                    unparsed_image.is_nsfw = False
+            logger.info(f'Image {unparsed_image.id} is NSFW: {unparsed_image.is_nsfw}')
 
-            non_updated_images.append(unparsed_image)
-
-        Image.objects.bulk_update(non_updated_images, ['is_nsfw'])
+            unparsed_image.save()

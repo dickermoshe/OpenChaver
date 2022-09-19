@@ -163,8 +163,7 @@ cython_debug/
 output/
 
 # Images
-*.png
-*.jpg
+/media/
 
 # Static files
 /staticfiles/
