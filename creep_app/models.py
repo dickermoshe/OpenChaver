@@ -169,15 +169,12 @@ class Screenshot(models.Model):
 
 
         for screenshot in screenshots:
-            logger.info("Removing non-existant records on %s",screenshot.title)
-
             if not Path(screenshot.image.path).exists():
-                logger.warning("Image file does not exist on disk")
+                logger.warning("Image file does not exist on disk %s",screenshot.title)
                 screenshot.delete()
                 continue
         
         screenshots = cls.objects.filter(is_nsfw=None)
-        
         screenshot_groups = {}
         
         for screenshot in screenshots:
@@ -194,23 +191,19 @@ class Screenshot(models.Model):
             for i in range(0, len(images), batch_size):
                 batches.append(images[i:i + batch_size])
 
-        for b in batches:
+        for batch in screenshot_groups.values():
+            
+            # Open Images
             images = []
-            for screenshot in b:
+            for screenshot in batch:
                 img = cv.imread(screenshot.image.path)
                 images.append(img)
-
-            if brain.detect(images)['is_nsfw']:
-                for i in len(images):
-                    if brain.detect(images[i])['is_nsfw']:
-                        b[i].is_nsfw = True
-                    else:
-                        b[i].is_nsfw = False
-                    b[i].save()
-            else:
-                for screenshot in b:
-                    screenshot.is_nsfw = False
-                    screenshot.save()
+            
+            results = brain.detect(images)
+            
+            for screenshot,result in zip(batch,results):
+                screenshot.is_nsfw = result['is_nsfw']
+                screenshot.save()
         
         # Delete all images that are not marked as keep and is_nsfw is not none
         cls.objects.filter(keep=False,is_nsfw__isnull=False).delete()

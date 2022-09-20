@@ -13,7 +13,6 @@ def read_image_bgr(image):
     Args
         path: Path to the image.
     """
-    path = cv.cvtColor(image, cv.COLOR_BGR2RGB)
     image = np.ascontiguousarray(Image.fromarray(image))
 
     return image[:, :, ::-1]
@@ -50,15 +49,16 @@ def resize_image(img, min_side=800, max_side=1333):
     return img, scale
 
 def preprocess_image(
-    image_path, min_side=800, max_side=1333,
+    image_path, min_side, max_side,
 ):
     image = read_image_bgr(image_path)
     image = _preprocess_image(image)
     image, scale = resize_image(image, min_side=min_side, max_side=max_side)
     return image, scale
-from onnxruntime.capi.onnxruntime_pybind11_state import InvalidArgument
-class Detector:
-    def __init__(self) -> None:
+
+
+class Brain:
+    def __init__(self):
         logger.debug("Initializing Detector")
         model_path = settings.BASE_DIR  / 'nsfw_model' / 'detector_v2_default_checkpoint.onnx'
 
@@ -70,65 +70,59 @@ class Detector:
         self.classes = ['EXPOSED_ANUS', 'EXPOSED_ARMPITS', 'COVERED_BELLY', 'EXPOSED_BELLY', 'COVERED_BUTTOCKS', 'EXPOSED_BUTTOCKS', 'FACE_F', 'FACE_M', 'COVERED_FEET',
                         'EXPOSED_FEET', 'COVERED_BREAST_F', 'EXPOSED_BREAST_F', 'COVERED_GENITALIA_F', 'EXPOSED_GENITALIA_F', 'EXPOSED_BREAST_M', 'EXPOSED_GENITALIA_M']
 
-    def detect(self, img, mode="default", min_prob=None):
-        if not isinstance(img,list):
-            images = [img]
-        else:
-            images = img
+    def detect(self, images: list[np.ndarray], min_prob=None, fast=False, batch_size=5) -> list[dict]:
+        """ Detect objects in an image."""
         
-        preprocessed_images = []
-        for i in images:
-            if mode == "fast":
-                pi, scale = preprocess_image(i, min_side=480, max_side=800)
-                if not min_prob:
-                    min_prob = 0.5
-            else:
-                pi, scale = preprocess_image(i)
-                if not min_prob:
-                    min_prob = 0.6
-            preprocessed_images.append(pi)
+        # Preprocess images
+        preprocessed_images = [
+            preprocess_image(
+                img,
+                min_side=480 if fast else 800,
+                max_side=800 if fast else 1333
+                ) for img in images
+            ]
         
-        img = np.expand_dims(preprocessed_images[0], axis=0)
-        
-        for pi in preprocessed_images[1:]:
-            np.append(img, np.expand_dims(pi, axis=0), axis=0)
+        min_prob = 0.5 if fast else 0.6
+        scale = preprocessed_images[0][1]
+        preprocessed_images = [p[0] for p in preprocessed_images]
+        results = []
 
-        outputs = self.detection_model.run(
-            [s_i.name for s_i in self.detection_model.get_outputs()],
-            {self.detection_model.get_inputs()[0].name: img},
-        )
+        while len(preprocessed_images):
+            batch = preprocessed_images[:batch_size]
+            preprocessed_images = preprocessed_images[batch_size:]
+            print(len(batch))
+            print(np.asarray(batch,dtype=np.float32).shape)
+            outputs = self.detection_model.run(
+                    [s_i.name for s_i in self.detection_model.get_outputs()],
+                    {self.detection_model.get_inputs()[0].name: np.asarray(batch)},
+                )
+            
+            labels = [op for op in outputs if op.dtype == "int32"][0]
+            scores = [op for op in outputs if isinstance(op[0][0], np.float32)][0]
+            boxes = [op for op in outputs if isinstance(op[0][0], np.ndarray)][0]
+            boxes /= scale
 
-        labels = [op for op in outputs if op.dtype == "int32"][0]
-        scores = [op for op in outputs if isinstance(op[0][0], np.float32)][0]
-        boxes = [op for op in outputs if isinstance(op[0][0], np.ndarray)][0]
+            for frame_boxes, frame_scores, frame_labels, in zip(
+                    boxes, scores, labels,
+                ):
+                frame_result = {
+                    "detections":[],
+                }
+                for box, score, label in zip(
+                        frame_boxes, frame_scores, frame_labels
+                    ):
+                    if score < min_prob:
+                        continue
+                    box = box.astype(int).tolist()
+                    label = self.classes[label]
+                    detection = {"box": [int(c) for c in box], "score": float(score), "label": label}
+                    frame_result['detections'].append(detection)
+                
+                frame_result['is_nsfw'] = self._eval_detection(frame_result['detections'])
+                results.append(frame_result)
 
-        boxes /= scale
-        processed_boxes = []
-        for box, score, label in zip(boxes[0], scores[0], labels[0]):
-            if score < min_prob:
-                continue
-            box = box.astype(int).tolist()
-            label = self.classes[label]
-            processed_boxes.append(
-                {"box": [int(c) for c in box], "score": float(score), "label": label}
-            )
-
-        return processed_boxes
-
-class Brain:
-    def __init__(self):
-        self.detector = Detector()
-
-    def detect(self, image: np.ndarray, fast=False, threshold=0.5):
-
-        detections = self.detector.detect(image,mode='fast' if fast else 'default')
-        result = dict(
-            detections=detections,
-            is_nsfw=self._eval_results(detections, threshold=threshold),
-            image=image
-        )
-        logger.debug(result)
-        return result
+        return results
+    
     
     def splice(self,img:np.ndarray) -> list[np.ndarray]:
 
@@ -158,7 +152,7 @@ class Brain:
 
         return images
      
-    def _eval_results(self, result, threshold=0.5):
+    def _eval_detection(self, result, threshold=0.5):
         nsfw_labels = ['EXPOSED_ANUS', 'EXPOSED_BUTTOCKS','EXPOSED_BREAST_F', 'EXPOSED_GENITALIA_F','EXPOSED_GENITALIA_M']
         for detection in result:
             if detection['label'] in nsfw_labels and detection['score'] > threshold:
@@ -179,6 +173,7 @@ class Brain:
 
         # output image with only the kept components
         im_result = np.zeros((img.shape))
+
         # for every component in the image, keep it only if it's above min_size
         for blob in range(nb_blobs):
             if sizes[blob] >= min_size:
@@ -273,11 +268,6 @@ class Brain:
         
         return bounding_boxes
     
-    def draw_bounding_boxes(self,img,bounding_boxes):
-        for x,y,w,h in bounding_boxes:
-            cv.rectangle(img,(x,y),(x+w,y+h),(0,255,0),2)
-        return img
-
     def _single_mser(self,img):
 
         mser = cv.MSER_create()
