@@ -56,7 +56,7 @@ def preprocess_image(
     image = _preprocess_image(image)
     image, scale = resize_image(image, min_side=min_side, max_side=max_side)
     return image, scale
-
+from onnxruntime.capi.onnxruntime_pybind11_state import InvalidArgument
 class Detector:
     def __init__(self) -> None:
         logger.debug("Initializing Detector")
@@ -71,18 +71,31 @@ class Detector:
                         'EXPOSED_FEET', 'COVERED_BREAST_F', 'EXPOSED_BREAST_F', 'COVERED_GENITALIA_F', 'EXPOSED_GENITALIA_F', 'EXPOSED_BREAST_M', 'EXPOSED_GENITALIA_M']
 
     def detect(self, img, mode="default", min_prob=None):
-        if mode == "fast":
-            image, scale = preprocess_image(img, min_side=480, max_side=800)
-            if not min_prob:
-                min_prob = 0.5
+        if not isinstance(img,list):
+            images = [img]
         else:
-            image, scale = preprocess_image(img)
-            if not min_prob:
-                min_prob = 0.6
+            images = img
+        
+        preprocessed_images = []
+        for i in images:
+            if mode == "fast":
+                pi, scale = preprocess_image(i, min_side=480, max_side=800)
+                if not min_prob:
+                    min_prob = 0.5
+            else:
+                pi, scale = preprocess_image(i)
+                if not min_prob:
+                    min_prob = 0.6
+            preprocessed_images.append(pi)
+        
+        img = np.expand_dims(preprocessed_images[0], axis=0)
+        
+        for pi in preprocessed_images[1:]:
+            np.append(img, np.expand_dims(pi, axis=0), axis=0)
 
         outputs = self.detection_model.run(
             [s_i.name for s_i in self.detection_model.get_outputs()],
-            {self.detection_model.get_inputs()[0].name: np.expand_dims(image, axis=0)},
+            {self.detection_model.get_inputs()[0].name: img},
         )
 
         labels = [op for op in outputs if op.dtype == "int32"][0]

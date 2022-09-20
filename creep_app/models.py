@@ -42,9 +42,10 @@ class Screenshot(models.Model):
         ordering = ['-created']
     
     @classmethod
-    def snap(cls, eye : Eye, after_title_change: bool = False, after_stable_title : int | bool = False, max_wait: int = 60) -> None|np.ndarray:
-
-        initial_window , max_wait = Window.waitForActiveWindow(max_wait)
+    def snap(cls, eye : Eye, after_title_change: bool = False, after_stable_title : int | bool = False,initial_window = None ,max_wait: int = 60) -> None|np.ndarray:
+        
+        if initial_window is None:
+            initial_window , max_wait = Window.waitForActiveWindow(max_wait)
         
         if initial_window == None:
             logger.warning("No initial_window found after %s seconds",max_wait)
@@ -76,7 +77,7 @@ class Screenshot(models.Model):
             if stable_window.title != final_window.title:
                 logger.info("Stable window title does not match final window title")
                 logger.info("Restarting snap with new max_wait: %s",max_wait)
-                return cls.snap(eye,after_title_change=after_title_change,after_stable_title=after_stable_title,max_wait=max_wait)
+                return cls.snap(eye,after_title_change=after_title_change,after_stable_title=after_stable_title,max_wait=max_wait,initial_window=stable_window)
             else:
                 logger.info("Window is stable")
         
@@ -153,7 +154,7 @@ class Screenshot(models.Model):
             time.sleep(randint(sleep_interval_min,sleep_interval_max))
 
     @classmethod
-    def run_detections(cls,splice=False):
+    def run_detections(cls,batch_size=10):
         """Run NSFW Detection on all images"""
 
         brain = Brain()
@@ -168,38 +169,54 @@ class Screenshot(models.Model):
 
 
         for screenshot in screenshots:
-            logger.info("Running NSFW Detection on %s",screenshot.title)
+            logger.info("Removing non-existant records on %s",screenshot.title)
 
             if not Path(screenshot.image.path).exists():
                 logger.warning("Image file does not exist on disk")
                 screenshot.delete()
                 continue
+        
+        screenshots = cls.objects.filter(is_nsfw=None)
+        
+        screenshot_groups = {}
+        
+        for screenshot in screenshots:
+            image_width = screenshot.image.width
+            image_height = screenshot.image.height
+            image_size = f'{image_width}x{image_height}'
+            if image_size not in screenshot_groups:
+                screenshot_groups[image_size] = []
+            screenshot_groups[image_size].append(screenshot)
 
-            img = cv.imdecode(np.frombuffer(screenshot.image.read(), np.uint8), 1)
-            if brain.detect(img)['is_nsfw']:
-                screenshot.is_nsfw = True
-            elif splice:
-                spliced_images = brain.splice(img)
-                for spliced_image in spliced_images:
-                    if brain.detect(spliced_image)['is_nsfw']:
-                        screenshot.is_nsfw = True
-                        break
+        batches = []
+        for images in screenshot_groups.values():
+            # Add in batches of batch_size
+            for i in range(0, len(images), batch_size):
+                batches.append(images[i:i + batch_size])
+
+        for b in batches:
+            images = []
+            for screenshot in b:
+                img = cv.imread(screenshot.image.path)
+                images.append(img)
+
+            if brain.detect(images)['is_nsfw']:
+                for i in len(images):
+                    if brain.detect(images[i])['is_nsfw']:
+                        b[i].is_nsfw = True
                     else:
-                        screenshot.is_nsfw = False
+                        b[i].is_nsfw = False
+                    b[i].save()
             else:
-                screenshot.is_nsfw = False
+                for screenshot in b:
+                    screenshot.is_nsfw = False
+                    screenshot.save()
+        
+        # Delete all images that are not marked as keep and is_nsfw is not none
+        cls.objects.filter(keep=False,is_nsfw__isnull=False).delete()
 
-            logger.info("NSFW Detection result: %s",screenshot.is_nsfw)
-            
-            if screenshot.is_nsfw:
-                screenshot.keep = True
+                    
 
-            if not screenshot.keep:
-                # Delete image from disk
-                screenshot.image.delete()
-                screenshot.delete()
-            else:
-                screenshot.save()
 
     @classmethod
     def clean(cls):

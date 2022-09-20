@@ -15,7 +15,7 @@ def snap_random_window_service(request):
 
 def detect_service(request):
     """Detect Service"""
-    Screenshot.run_detections(splice=True)
+    Screenshot.run_detections()
     return HttpResponse("OK")
 
 def clean_service(request):
