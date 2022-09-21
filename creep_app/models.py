@@ -80,7 +80,7 @@ class Screenshot(models.Model):
         after_stable_title: int | bool = False,
         max_wait: int = 60,
         keep = False,
-        initial_window=None,
+        final_window=None,
     ) -> None | np.ndarray:
         """
         Take a screenshot of a window and return the image as a cv2 image
@@ -99,34 +99,35 @@ class Screenshot(models.Model):
             logger.error("Timed out.")
             return None
 
-        # Get the initial window if it is not provided
-        if initial_window is None:
+        # If the final_window is not set, get the active window
+        if final_window is None:
+            # Get the initial window if it is not provided
             logger.info("Getting initial window...")
             initial_window, max_wait = Window.waitForActiveWindow(max_wait)
 
-        # Check whether or not a window was found
-        if initial_window is None:
-            logger.warning("No initial_window found after %s seconds", max_wait)
-            return None
-        else:
-            logger.info("Initial window found: %s", initial_window.title)
-
-        # If after_title_change is True, wait for the title to change
-        if after_title_change != False:
-            logger.info("Waiting %s seconds for title to change...", after_title_change)
-            final_window, max_wait = Window.waitForActiveWindow(
-                max_wait, invalid_title=initial_window.title
-            )
-
             # Check whether or not a window was found
-            if final_window is None:
-                logger.warning("No final_window found afer %s seconds", max_wait)
+            if initial_window is None:
+                logger.warning("No initial_window found after %s seconds", max_wait)
                 return None
             else:
-                logger.info("Final window found: %s", final_window.title)
-        # If after_title_change is False, use the initial window
-        else:
-            final_window = initial_window
+                logger.info("Initial window found: %s", initial_window.title)
+
+            # If after_title_change is True, wait for the title to change
+            if after_title_change != False:
+                logger.info("Waiting for title to change...")
+                final_window, max_wait = Window.waitForActiveWindow(
+                    max_wait, invalid_title=initial_window.title
+                )
+
+                # Check whether or not a window was found
+                if final_window is None:
+                    logger.warning("No final_window found afer %s seconds", max_wait)
+                    return None
+                else:
+                    logger.info("Final window found: %s", final_window.title)
+            # If after_title_change is False, use the initial window
+            else:
+                final_window = initial_window
 
         # If after_stable_title is True, wait for the title to be stable for 5 seconds
         if after_stable_title != False:
@@ -141,7 +142,7 @@ class Screenshot(models.Model):
                         after_title_change=after_title_change,
                         after_stable_title=after_stable_title,
                         max_wait=max_wait,
-                        initial_window=stable_window,
+                        final_window=stable_window,
                     )
                 else:
                     time.sleep(0.5)
@@ -314,14 +315,14 @@ class Screenshot(models.Model):
             
             # Run detection
             results = brain.detect(images)
-
+            print(results)
             # Save the results
             for screenshot, result in zip(batch, results):
                 screenshot.is_nsfw = result["is_nsfw"]
                 screenshot.save()
 
-        # Delete all images that are not marked as keep and is_nsfw is not none
-        for screenshot in cls.objects.filter(keep=False, is_nsfw__isnull=False):
+        # Delete all images that are not marked as keep and is_nsfw is 
+        for screenshot in cls.objects.filter(keep=False, is_nsfw=False):
             Path(screenshot.image.path).unlink()
             screenshot.delete()
 

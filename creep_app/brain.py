@@ -81,7 +81,8 @@ class Brain:
                 max_side=800 if fast else 1333
                 ) for img in images
             ]
-        
+        # Show images
+
         min_prob = 0.5 if fast else 0.6
         scale = preprocessed_images[0][1]
         preprocessed_images = [p[0] for p in preprocessed_images]
@@ -90,8 +91,6 @@ class Brain:
         while len(preprocessed_images):
             batch = preprocessed_images[:batch_size]
             preprocessed_images = preprocessed_images[batch_size:]
-            print(len(batch))
-            print(np.asarray(batch,dtype=np.float32).shape)
             outputs = self.detection_model.run(
                     [s_i.name for s_i in self.detection_model.get_outputs()],
                     {self.detection_model.get_inputs()[0].name: np.asarray(batch)},
