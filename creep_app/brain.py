@@ -294,3 +294,38 @@ class Brain:
             if not contained:
                 filtered_boxes.append(box)
         return filtered_boxes
+    
+    def skin_pixels(self,img:np.ndarray|list[np.ndarray],threshold = 100):
+
+        if type(img) == list:
+            if len(img) == 0:
+                return False
+            if len(img) == 1:
+                img = img[0]
+            else:
+                img = self.match_size(img)
+                img = np.concatenate(img,axis=1)
+
+        # Convert image to HSV
+        img_copy = img.copy()
+        blured = cv.GaussianBlur(img_copy, (5, 5), 0)
+
+        min_HSV = np.array([0, 58, 30], dtype="uint8")
+        max_HSV = np.array([33, 255, 255], dtype="uint8")
+
+        imageHSV = cv.cvtColor(blured, cv.COLOR_BGR2HSV)
+        skinRegionHSV = cv.inRange(imageHSV, min_HSV, max_HSV)
+
+        return np.count_nonzero(skinRegionHSV) > threshold
+    
+    def match_size(self,images:list[np.ndarray])->list[np.ndarray]:
+        """Resize images to the size of the largest image by adding black borders"""
+        max_width = max([img.shape[1] for img in images])
+        max_height = max([img.shape[0] for img in images])
+        resized_images = []
+        for img in images:
+            if img.shape[1] < max_width or img.shape[0] < max_height:
+                resized_images.append(cv.copyMakeBorder(img,0,max_height - img.shape[0],0,max_width - img.shape[1],cv.BORDER_CONSTANT,value=[0,0,0]))
+            else:
+                resized_images.append(img)
+        return resized_images

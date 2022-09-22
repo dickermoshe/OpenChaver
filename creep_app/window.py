@@ -1,9 +1,8 @@
 import logging
-import time
-
 import win32ui
 import win32process as wproc
 import psutil
+import numpy as np
 
 logger = logging.getLogger(__name__)
 
@@ -62,31 +61,34 @@ class Window:
         logger.debug(f"Calculated coordinates: {coordinates}")
         return coordinates
     
+    def image(self, sct):
+        coordinates = self.get_coordinates()
+        image = sct.grab(coordinates)
+        image = np.array(image)[:, :, :3]
+        return image
+    
+    def is_stable(self):
+        window_2 = Window.activeWindow()
+        if window_2 is None or window_2.title != self.title:
+            return False
+        else:
+            return True
+
     @classmethod
-    def activeWindow(cls):
+    def activeWindow(cls,invalid_title: str | None = None):
         try:
-            logger.debug("Getting active window...")
             hwnd = win32ui.GetForegroundWindow()
-            return cls(hwnd)
+            window = cls(hwnd)
+            if window.title == invalid_title:
+                return None
+            else:
+                return window
         except:
-            logger.exception("Unable to get active window")
             return None
     
-    @classmethod
-    def waitForActiveWindow(cls, max_wait: int = 60,invalid_title : str | None = None ):
-        logger.debug(f"Waiting for active window for {max_wait} seconds")
-        logger.debug(f"Invalid title: {invalid_title}") if invalid_title != None else None
-        
-        time_waited = 0
-        while time_waited < max_wait:
-            window = cls.activeWindow()
-            if window != None and window.title != invalid_title:
-                return window , max_wait - time_waited
-            time.sleep(1)
-            time_waited += 1
-        
-        time_remaining = max_wait - time_waited
-        return None , time_remaining
+    
+    
+
 
 
 
