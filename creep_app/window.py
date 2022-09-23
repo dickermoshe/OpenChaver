@@ -29,7 +29,6 @@ class Window:
         
         try:
             self.dpi = user32.GetDpiForWindow(self.hwnd.GetSafeHwnd())
-            print(self.dpi)
         except:
             self.dpi = 96
         
