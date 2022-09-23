@@ -1,11 +1,9 @@
-import enum
-import logging
 
+import logging
 import cv2 as cv
 import numpy as np
 from PIL import Image
-
-from django.conf import settings
+import numpy as np
 
 logger = logging.getLogger(__name__)
 
@@ -222,18 +220,25 @@ def skin_pixels( img: np.ndarray | list[np.ndarray], threshold=.01) -> bool:
 
 class NudeNet:
     def __init__(self):
+        import tensorflow as tf
+        from django.conf import settings
+        import tensorflow_hub as hub
         logger.debug("Initializing Detector")
-        model_path = (
+        detection_model_path = (
             settings.BASE_DIR / "nsfw_model" / "detector_v2_default_checkpoint.onnx"
         )
 
-        if not model_path.exists():
-            raise FileNotFoundError(f"Model file not found: {model_path}")
+        classify_model_path = (
+            settings.BASE_DIR / "nsfw_model" / "saved_model.h5"
+        )
+
+        if not detection_model_path.exists() or not classify_model_path.exists():
+            raise FileNotFoundError(f"Model file not found")
 
         import onnxruntime
 
         self.detection_model = onnxruntime.InferenceSession(
-            str(model_path), providers=["CPUExecutionProvider"]
+            str(detection_model_path), providers=["CPUExecutionProvider"]
         )
         self.classes = [
             "EXPOSED_ANUS",
@@ -254,8 +259,12 @@ class NudeNet:
             "EXPOSED_GENITALIA_M",
         ]
 
+        self.classify_model = tf.keras.models.load_model(str(classify_model_path), custom_objects={'KerasLayer': hub.KerasLayer},compile=False)
+
+        self.class
+
     def detect(
-        self, images: list[np.ndarray], min_prob=None, fast=False, batch_size=5,test_mode = True
+        self, images: list[np.ndarray], min_prob=None, fast=False, batch_size=5,test_mode = False
     ) -> list[dict]:
         """Detect objects in an image."""
 
@@ -321,10 +330,6 @@ class NudeNet:
                     for detection in result["detections"]:
                         box = detection["box"]
                         cv.rectangle(img, (box[0], box[1]), (box[2], box[3]), (0, 0, 255), 2)
-                    print(result["detections"])
-                    cv.imshow(f"test{i}.jpg", img)
-                    cv.waitKey(0)
-                    cv.destroyAllWindows()
 
         return results
 
@@ -340,6 +345,89 @@ class NudeNet:
             if detection["label"] in nsfw_labels and detection["score"] > threshold:
                 return True
         return False
+
+    def classify(self, images:list[np.ndarray]) -> list[dict]:
+        """Classify an image."""
+        IMAGE_DIM = 224
+        
+        # Resize images to 224x224 with nearest neighbor interpolation
+        resized_images = [
+            cv.resize(img, (IMAGE_DIM, IMAGE_DIM), interpolation=cv.INTER_NEAREST)
+            for img in images
+        ]
+        
+        # Devide by 255 to normalize the image
+        normalized_images = [
+            np.array(img, dtype=np.float32) / 255.0
+            for img in resized_images
+        ]
+
+        # Convert to numpy array
+        resized_images = np.array(normalized_images)
+
+        model_preds = self.classify_model.predict(resized_images)
+        # preds = np.argsort(model_preds, axis = 1).tolist()
+        
+        categories = ['drawings', 'hentai', 'neutral', 'porn', 'sexy']
+
+        probs = []
+        for i, single_preds in enumerate(model_preds):
+            single_probs = {}
+            for j, pred in enumerate(single_preds):
+                single_probs[categories[j]] = float(pred)
+            probs.append(single_probs)
+        return probs
+
+    def classify_yahoo(self, images:list[np.ndarray]) -> list[dict]:
+        """Classify an image."""
+        # Resize images to 256x256 with bilinear interpolation
+        images = [
+            cv.resize(img, (256, 256), interpolation=cv.INTER_LINEAR)
+            for img in images
+        ]
+        
+        cropped_size = 224
+
+        # Crop the center of the image
+        images = [
+            img[
+                (img.shape[0] - cropped_size) // 2 : (img.shape[0] + cropped_size) // 2,
+                (img.shape[1] - cropped_size) // 2 : (img.shape[1] + cropped_size) // 2,
+            ]
+            for img in images
+        ]
+
+        # Devide by 255 to normalize the image
+        images = [
+            np.array(img, dtype=np.float32) / 255.0
+            for img in images
+        ]
+
+        # Subtract the mean pixel value from each pixel
+        mean = np.array([104, 117, 123], dtype=np.float32)
+        images = [
+            img - mean
+            for img in images
+        ]
+
+        # Move image channels to outermost
+        images = [
+            np.expand_dims(img, axis=0)
+            for img in images
+        ]
+
+        image = self._preprocess_image(image_data)
+
+        input_name = self._model.get_inputs()[0].name
+        outputs = [output.name for output in self._model.get_outputs()]
+
+        result = self._model.run(outputs, {input_name: image})
+        return result[0][0][1]
+
+
+
+
+
 
 
 
