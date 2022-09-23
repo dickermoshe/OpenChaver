@@ -179,9 +179,9 @@ def detect_process(
                 if result["is_nsfw"] or keep:
                     logger.info("Saving To Database")
                     Screenshot.save_screenshot(
-                        raw_screenshot["image"],
-                        raw_screenshot["title"],
-                        raw_screenshot["exec_name"],
+                        image,
+                        title,
+                        exec_name,
                         is_nsfw=result["is_nsfw"],
                         keep=keep,
                     )
