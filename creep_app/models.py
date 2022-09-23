@@ -32,6 +32,9 @@ class Screenshot(models.Model):
         max_length=200,
     )
 
+    #: Alerted
+    alerted = models.BooleanField(default=False)
+
     #: Whether or not to keep the image for 7 days
     keep = models.BooleanField(default=False)
 
@@ -161,6 +164,10 @@ class Alert(models.Model):
         print("Sending alert")
         self.sent = True
         self.save()
+    
+    @classmethod
+    def send_alerts(cls):
+        pass
 
 # class Report(models.Model):
 #     """A report of a nsfw content"""
