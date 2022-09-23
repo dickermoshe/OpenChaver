@@ -142,13 +142,22 @@ LOGGING = {
         'simple': {
             'format': '%(levelname)s %(message)s'
         },
+        'standard': {
+            'format': '%(asctime)s [%(levelname)s] %(name)s: %(message)s'
+        },
     },
 
     'handlers': {
         'console': {
             'level': 'DEBUG',
             'class': 'logging.StreamHandler',
-            'formatter': 'verbose'
+            'formatter': 'standard'
+        },
+        'file': {
+            'level': 'DEBUG',
+            'class': 'logging.FileHandler',
+            'filename': 'creep_server.log',
+            'formatter': 'standard'
         },
     },
 
@@ -158,11 +167,22 @@ LOGGING = {
             'level': 'INFO',
             'propagate': True,
         },
-        'service': {
+        'detect': {
             'handlers': ['console'],
             'level': 'DEBUG',
             'propagate': True,
         },
+        'screenshot': {
+            'handlers': ['console'],
+            'level': 'DEBUG',
+            'propagate': True,
+        }
+        ,
+        'alert': {
+            'handlers': ['console'],
+            'level': 'DEBUG',
+            'propagate': True,
+        }
     }
 }
 

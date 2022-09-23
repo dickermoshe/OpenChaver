@@ -1,4 +1,3 @@
-
 import logging
 import cv2 as cv
 import numpy as np
@@ -14,41 +13,28 @@ def read_image_bgr(image):
         path: Path to the image.
     """
     image = np.ascontiguousarray(Image.fromarray(image))
-
     return image[:, :, ::-1]
 
 
-def _preprocess_image(x, mode="caffe"):
+def _preprocess_image(x):
     x = x.astype(np.float32)
-
-    if mode == "tf":
-        x /= 127.5
-        x -= 1.0
-    elif mode == "caffe":
-        x -= [103.939, 116.779, 123.68]
-
+    x -= [103.939, 116.779, 123.68]
     return x
 
 
 def compute_resize_scale(image_shape, min_side=800, max_side=1333):
     (rows, cols, _) = image_shape
-
     smallest_side = min(rows, cols)
-
     scale = min_side / smallest_side
-
     largest_side = max(rows, cols)
     if largest_side * scale > max_side:
         scale = max_side / largest_side
-
     return scale
 
 
 def resize_image(img, min_side=800, max_side=1333):
     scale = compute_resize_scale(img.shape, min_side=min_side, max_side=max_side)
-
     img = cv.resize(img, None, fx=scale, fy=scale)
-
     return img, scale
 
 
@@ -63,10 +49,8 @@ def preprocess_image(
     return image, scale
 
 
-def splice_images(image,boring_shift=1,min_contour_area=1500,max_aspect_ratio=3):
-    """
-    Splice Screenshot instances into a single images
-    """
+def splice_images(image, boring_shift=1, min_contour_area=1500, max_aspect_ratio=3):
+    """Splice Screenshot into a single images"""
 
     # Create a mask that only contains the colored pixels
     red, green, blue = cv.split(image)
@@ -105,13 +89,10 @@ def splice_images(image,boring_shift=1,min_contour_area=1500,max_aspect_ratio=3)
     diff_d = np.absolute(gray - shift_d)
     diff = diff_r * diff_l * diff_u * diff_d
 
-    _, boring_mask = cv.threshold(
-        diff, 0, 255, cv.THRESH_BINARY + cv.THRESH_OTSU
-    )
+    _, boring_mask = cv.threshold(diff, 0, 255, cv.THRESH_BINARY + cv.THRESH_OTSU)
 
     # Minus the boring pixels from the mask
     mask = cv.bitwise_and(mask, boring_mask)
-
 
     # morphologyEx
     kernel = np.ones((3, 3), np.uint8)
@@ -157,9 +138,8 @@ def splice_images(image,boring_shift=1,min_contour_area=1500,max_aspect_ratio=3)
         if not contained:
             filtered_boxes.append(box)
 
-    images = []
-
     # Cut out the bounding boxes
+    images = []
     for x, y, w, h in filtered_boxes:
         images.append(image[y : y + h, x : x + w])
 
@@ -167,28 +147,29 @@ def splice_images(image,boring_shift=1,min_contour_area=1500,max_aspect_ratio=3)
 
 
 def match_size(images: list[np.ndarray]) -> list[np.ndarray]:
-        """Resize images to the size of the largest image by adding black borders"""
-        max_width = max([img.shape[1] for img in images])
-        max_height = max([img.shape[0] for img in images])
-        resized_images = []
-        for img in images:
-            if img.shape[1] < max_width or img.shape[0] < max_height:
-                resized_images.append(
-                    cv.copyMakeBorder(
-                        img,
-                        0,
-                        max_height - img.shape[0],
-                        0,
-                        max_width - img.shape[1],
-                        cv.BORDER_CONSTANT,
-                        value=[0, 0, 0],
-                    )
+    """Resize images to the size of the largest image by adding black borders"""
+    max_width = max([img.shape[1] for img in images])
+    max_height = max([img.shape[0] for img in images])
+    resized_images = []
+    for img in images:
+        if img.shape[1] < max_width or img.shape[0] < max_height:
+            resized_images.append(
+                cv.copyMakeBorder(
+                    img,
+                    0,
+                    max_height - img.shape[0],
+                    0,
+                    max_width - img.shape[1],
+                    cv.BORDER_CONSTANT,
+                    value=[0, 0, 0],
                 )
-            else:
-                resized_images.append(img)
-        return resized_images
+            )
+        else:
+            resized_images.append(img)
+    return resized_images
 
-def skin_pixels( img: np.ndarray | list[np.ndarray], threshold=.01) -> bool:
+
+def skin_pixels(img: np.ndarray | list[np.ndarray], threshold=0.01) -> bool:
 
     if type(img) == list:
         if len(img) == 0:
@@ -198,12 +179,10 @@ def skin_pixels( img: np.ndarray | list[np.ndarray], threshold=.01) -> bool:
         else:
             img = match_size(img)
             img = np.concatenate(img, axis=1)
-    
+
     # Amount of pixels in the image
     total_pixels = img.shape[0] * img.shape[1]
     threshold = total_pixels * threshold
-
-
 
     # Convert image to HSV
     img_copy = img.copy()
@@ -220,22 +199,18 @@ def skin_pixels( img: np.ndarray | list[np.ndarray], threshold=.01) -> bool:
 
 class NudeNet:
     def __init__(self):
-        import tensorflow as tf
         from django.conf import settings
-        import tensorflow_hub as hub
+        import onnxruntime
+
         logger.debug("Initializing Detector")
         detection_model_path = (
             settings.BASE_DIR / "nsfw_model" / "detector_v2_default_checkpoint.onnx"
         )
 
-        classify_model_path = (
-            settings.BASE_DIR / "nsfw_model" / "saved_model.h5"
-        )
+        classify_model_path = settings.BASE_DIR / "nsfw_model" / "open-nsfw.onnx"
 
         if not detection_model_path.exists() or not classify_model_path.exists():
             raise FileNotFoundError(f"Model file not found")
-
-        import onnxruntime
 
         self.detection_model = onnxruntime.InferenceSession(
             str(detection_model_path), providers=["CPUExecutionProvider"]
@@ -259,12 +234,17 @@ class NudeNet:
             "EXPOSED_GENITALIA_M",
         ]
 
-        self.classify_model = tf.keras.models.load_model(str(classify_model_path), custom_objects={'KerasLayer': hub.KerasLayer},compile=False)
-
-        self.class
+        self.classify_model = onnxruntime.InferenceSession(
+            str(classify_model_path), providers=["CPUExecutionProvider"]
+        )
 
     def detect(
-        self, images: list[np.ndarray], min_prob=None, fast=False, batch_size=5,test_mode = False
+        self,
+        images: list[np.ndarray],
+        min_prob=None,
+        fast=False,
+        batch_size=5,
+        test_mode=False,
     ) -> list[dict]:
         """Detect objects in an image."""
 
@@ -324,16 +304,18 @@ class NudeNet:
                 results.append(frame_result)
 
         if test_mode:
-            for i , result in enumerate(results):
-                if result['is_nsfw']:
+            for i, result in enumerate(results):
+                if result["is_nsfw"]:
                     img = images[i]
                     for detection in result["detections"]:
                         box = detection["box"]
-                        cv.rectangle(img, (box[0], box[1]), (box[2], box[3]), (0, 0, 255), 2)
+                        cv.rectangle(
+                            img, (box[0], box[1]), (box[2], box[3]), (0, 0, 255), 2
+                        )
 
         return results
 
-    def _eval_detection(self, result, threshold=0.5):
+    def _eval_detection(self, result, threshold=0.5) -> bool:
         nsfw_labels = [
             "EXPOSED_ANUS",
             "EXPOSED_BUTTOCKS",
@@ -346,46 +328,13 @@ class NudeNet:
                 return True
         return False
 
-    def classify(self, images:list[np.ndarray]) -> list[dict]:
-        """Classify an image."""
-        IMAGE_DIM = 224
-        
-        # Resize images to 224x224 with nearest neighbor interpolation
-        resized_images = [
-            cv.resize(img, (IMAGE_DIM, IMAGE_DIM), interpolation=cv.INTER_NEAREST)
-            for img in images
-        ]
-        
-        # Devide by 255 to normalize the image
-        normalized_images = [
-            np.array(img, dtype=np.float32) / 255.0
-            for img in resized_images
-        ]
-
-        # Convert to numpy array
-        resized_images = np.array(normalized_images)
-
-        model_preds = self.classify_model.predict(resized_images)
-        # preds = np.argsort(model_preds, axis = 1).tolist()
-        
-        categories = ['drawings', 'hentai', 'neutral', 'porn', 'sexy']
-
-        probs = []
-        for i, single_preds in enumerate(model_preds):
-            single_probs = {}
-            for j, pred in enumerate(single_preds):
-                single_probs[categories[j]] = float(pred)
-            probs.append(single_probs)
-        return probs
-
-    def classify_yahoo(self, images:list[np.ndarray]) -> list[dict]:
+    def classify(self, images: list[np.ndarray]) -> list[dict]:
         """Classify an image."""
         # Resize images to 256x256 with bilinear interpolation
         images = [
-            cv.resize(img, (256, 256), interpolation=cv.INTER_LINEAR)
-            for img in images
+            cv.resize(img, (256, 256), interpolation=cv.INTER_LINEAR) for img in images
         ]
-        
+
         cropped_size = 224
 
         # Crop the center of the image
@@ -398,37 +347,18 @@ class NudeNet:
         ]
 
         # Devide by 255 to normalize the image
-        images = [
-            np.array(img, dtype=np.float32) / 255.0
-            for img in images
-        ]
+        images = [np.array(img, dtype=np.float32) / 255.0 for img in images]
 
         # Subtract the mean pixel value from each pixel
         mean = np.array([104, 117, 123], dtype=np.float32)
-        images = [
-            img - mean
-            for img in images
-        ]
+        images = [img - mean for img in images]
 
         # Move image channels to outermost
-        images = [
-            np.expand_dims(img, axis=0)
-            for img in images
-        ]
+        images = [np.expand_dims(img, axis=0) for img in images]
 
-        image = self._preprocess_image(image_data)
-
-        input_name = self._model.get_inputs()[0].name
-        outputs = [output.name for output in self._model.get_outputs()]
-
-        result = self._model.run(outputs, {input_name: image})
-        return result[0][0][1]
-
-
-
-
-
-
-
-
-
+        # Run the model
+        for image in images:
+            input_name = self._model.get_inputs()[0].name
+            outputs = [output.name for output in self._model.get_outputs()]
+            result = self._model.run(outputs, {input_name: image})
+            yield result[0][0][1]

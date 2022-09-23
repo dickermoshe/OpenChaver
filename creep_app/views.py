@@ -190,6 +190,8 @@ def detect_process(
 def alert_process():
     logger = logging.getLogger("alert")
     logger.info("Initializing Alert Process...")
+    import django
+    django.setup()
     from creep_app.models import Screenshot, Alert
     logger.info("Alert Process Initialized")
     while True:
@@ -198,7 +200,7 @@ def alert_process():
 
         # Get the screenshots
         screenshots = Screenshot.objects.filter(
-            created_at__gte=last_5_minutes, is_nsfw=True, alerted=False
+            created__gte=last_5_minutes, is_nsfw=True, alerted=False
         )
 
         # If there are 2 or more screenshots, then create an alert
