@@ -136,7 +136,6 @@ def detect_process(
             raw_screenshots = queue.get(timeout=1)
             logger.info("Queue received")
         except:
-            logger.exception("Queue Error. Retrying...")
             time.sleep(1)
             continue
 
@@ -160,14 +159,16 @@ def detect_process(
                 logger.info("No splices found. Skipping...")
                 continue
             
-            logger.info("Classifying...")
+            logger.info("Running Classification...")
             classify_results = brain.classify(splices)
-            logger.debug(f"Classify results: {classify_results}")
-            if len([cr for cr in classify_results if cr["sexy"] > 0.5 or cr["porn"] > 0.5]) == 0 :
-                logger.info("Screenshot is clean")
+            for result in classify_results:
+                if result == True:
+                    logger.info("Screenshot is suspicious")
+                    break
+            else:
+                logger.info("Screenshot is not suspicious")
                 continue
-            
-            logger.info("Screenshot is suspicious")
+
             logger.info('Running Detection...')
             results = brain.detect(raw_screenshot["splices"], batch_size=batch_size)
             logger.debug(f"Detection results: {results}")
@@ -213,6 +214,8 @@ def alert_process():
 
         # Send the alert
         Alert.send_alerts()
+
+        time.sleep(30)
 
 
 def single_service(request):

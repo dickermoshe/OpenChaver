@@ -3,6 +3,7 @@ import cv2 as cv
 import numpy as np
 from PIL import Image
 import numpy as np
+from io import BytesIO
 
 logger = logging.getLogger(__name__)
 
@@ -328,37 +329,49 @@ class NudeNet:
                 return True
         return False
 
-    def classify(self, images: list[np.ndarray]) -> list[dict]:
+    def classify(self, images: list[np.ndarray],threshold = 0.6) -> list[dict]:
         """Classify an image."""
-        # Resize images to 256x256 with bilinear interpolation
-        images = [
-            cv.resize(img, (256, 256), interpolation=cv.INTER_LINEAR) for img in images
-        ]
+        # convert cv2 images bytes object
+        preprocessed_images = []
+    
+        for image in images:
+            image = cv.cvtColor(image, cv.COLOR_BGR2RGB)
+            image = Image.fromarray(image)
 
-        cropped_size = 224
+            
+            if image.mode != "RGB":
+                image = image.convert("RGB")
+            
+            image = image.resize((256, 256), resample=Image.BILINEAR)
 
-        # Crop the center of the image
-        images = [
-            img[
-                (img.shape[0] - cropped_size) // 2 : (img.shape[0] + cropped_size) // 2,
-                (img.shape[1] - cropped_size) // 2 : (img.shape[1] + cropped_size) // 2,
-            ]
-            for img in images
-        ]
+            cropped_size = 224
+            image_width, image_height = image.size
+            image = image.crop(
+                (
+                    (image_width - cropped_size) / 2,
+                    (image_height - cropped_size) / 2,
+                    (image_width + cropped_size) / 2,
+                    (image_height + cropped_size) / 2,
+                )
+            )
+            with BytesIO() as jpeg_buffer:
+                image.save(jpeg_buffer, format="JPEG")
+                jpeg_buffer.seek(0)
 
-        # Devide by 255 to normalize the image
-        images = [np.array(img, dtype=np.float32) / 255.0 for img in images]
+                image_jpeg_data = np.array(Image.open(jpeg_buffer), dtype=np.float32, copy=False)
 
-        # Subtract the mean pixel value from each pixel
-        mean = np.array([104, 117, 123], dtype=np.float32)
-        images = [img - mean for img in images]
+            image_jpeg_data = image_jpeg_data[:, :, ::-1]
 
-        # Move image channels to outermost
-        images = [np.expand_dims(img, axis=0) for img in images]
+            image_jpeg_data -= np.array([104, 117, 123], dtype=np.float32)
+
+            image_jpeg_data = np.expand_dims(image_jpeg_data, axis=0)
+
+            preprocessed_images.append(image_jpeg_data)
+
 
         # Run the model
-        for image in images:
-            input_name = self._model.get_inputs()[0].name
-            outputs = [output.name for output in self._model.get_outputs()]
-            result = self._model.run(outputs, {input_name: image})
-            yield result[0][0][1]
+        for image in preprocessed_images:
+            input_name = self.classify_model.get_inputs()[0].name
+            outputs = [output.name for output in self.classify_model.get_outputs()]
+            result = self.classify_model.run(outputs, {input_name: image})
+            yield result[0][0][1] > threshold
