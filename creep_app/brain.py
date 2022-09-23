@@ -4,7 +4,7 @@ import numpy as np
 from PIL import Image
 import numpy as np
 from io import BytesIO
-
+from random import randint
 logger = logging.getLogger(__name__)
 
 
@@ -170,7 +170,7 @@ def match_size(images: list[np.ndarray]) -> list[np.ndarray]:
     return resized_images
 
 
-def skin_pixels(img: np.ndarray | list[np.ndarray], threshold=0.01) -> bool:
+def skin_pixels(img: np.ndarray | list[np.ndarray], threshold=0.01,random_true:int=10) -> bool:
 
     if type(img) == list:
         if len(img) == 0:
@@ -195,7 +195,7 @@ def skin_pixels(img: np.ndarray | list[np.ndarray], threshold=0.01) -> bool:
     imageHSV = cv.cvtColor(blured, cv.COLOR_BGR2HSV)
     skinRegionHSV = cv.inRange(imageHSV, min_HSV, max_HSV)
 
-    return np.count_nonzero(skinRegionHSV) > threshold
+    return np.count_nonzero(skinRegionHSV) > threshold or randint(1,random_true) == 1
 
 
 class NudeNet:
@@ -208,9 +208,7 @@ class NudeNet:
             settings.BASE_DIR / "nsfw_model" / "detector_v2_default_checkpoint.onnx"
         )
 
-        classify_model_path = settings.BASE_DIR / "nsfw_model" / "open-nsfw.onnx"
-
-        if not detection_model_path.exists() or not classify_model_path.exists():
+        if not detection_model_path.exists():
             raise FileNotFoundError(f"Model file not found")
 
         self.detection_model = onnxruntime.InferenceSession(
@@ -234,10 +232,6 @@ class NudeNet:
             "EXPOSED_BREAST_M",
             "EXPOSED_GENITALIA_M",
         ]
-
-        self.classify_model = onnxruntime.InferenceSession(
-            str(classify_model_path), providers=["CPUExecutionProvider"]
-        )
 
     def detect(
         self,
@@ -328,6 +322,21 @@ class NudeNet:
             if detection["label"] in nsfw_labels and detection["score"] > threshold:
                 return True
         return False
+class OpenNsfw:
+    def __init__(self):
+        from django.conf import settings
+        import onnxruntime
+
+        logger.debug("Initializing Detector")
+        classify_model_path = settings.BASE_DIR / "nsfw_model" / "open-nsfw.onnx"
+
+        if not classify_model_path.exists():
+            raise FileNotFoundError(f"Model file not found")
+
+        self.classify_model = onnxruntime.InferenceSession(
+            str(classify_model_path), providers=["CPUExecutionProvider"]
+        )
+
 
     def classify(self, images: list[np.ndarray],threshold = 0.6) -> list[dict]:
         """Classify an image."""
@@ -375,3 +384,7 @@ class NudeNet:
             outputs = [output.name for output in self.classify_model.get_outputs()]
             result = self.classify_model.run(outputs, {input_name: image})
             yield result[0][0][1] > threshold
+    
+    def is_nsfw(self, image: np.ndarray, threshold=0.6) -> bool:
+        """Classify an image."""
+        return next(self.classify([image], threshold))
