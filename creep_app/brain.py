@@ -5,8 +5,9 @@ from PIL import Image
 import numpy as np
 from io import BytesIO
 from random import randint
+from time import time
 logger = logging.getLogger(__name__)
-
+logging.basicConfig(level=logging.DEBUG)
 
 def read_image_bgr(image):
     """Read an image in BGR format.
@@ -49,36 +50,46 @@ def preprocess_image(
     image, scale = resize_image(image, min_side=min_side, max_side=max_side)
     return image, scale
 
+def color_in_image(img: np.ndarray) -> bool:
+    """Check if the image has color"""
+    return np.count_nonzero(img[:, :, 0] - img[:, :, 1]) > 0 or np.count_nonzero(
+        img[:, :, 1] - img[:, :, 2]
+    ) > 0
 
-def splice_images(image, boring_shift=1, min_contour_area=1500, max_aspect_ratio=3):
+def splice_images(image, boring_shift=1, min_contour_area=1500, max_aspect_ratio=3,mser=False):
     """Splice Screenshot into a single images"""
-
+    
     # Create a mask that only contains the colored pixels
+    t = time()
     red, green, blue = cv.split(image)
     r_g = np.absolute(red - green)
     r_b = np.absolute(red - blue)
     g_b = np.absolute(green - blue)
     colored_pixels = r_g + r_b + g_b
-    _, colored_mask = cv.threshold(
+    _, mask = cv.threshold(
         colored_pixels, 0, 255, cv.THRESH_BINARY + cv.THRESH_OTSU
     )
+    logger.debug(f"Time to create colored mask: {time() - t}")
 
+    
     # Create a mask that only contains the mser pixels
-    mser = cv.MSER_create()
-    regions, _ = mser.detectRegions(image)
-    hulls = [cv.convexHull(p.reshape(-1, 1, 2)) for p in regions]
-    mask = np.zeros((image.shape[0], image.shape[1], 1), dtype=np.uint8)
-    for contour in hulls:
-        if len(contour) > 2:
-            # If contour is too small, ignore it
-            if cv.contourArea(contour) < min_contour_area:
-                cv.drawContours(mask, [contour], -1, (255, 255, 255), -1)
-    mser_mask = mask
+    if mser or not color_in_image(image):
+        t = time()
+        mser = cv.MSER_create()
+        regions, _ = mser.detectRegions(image)
+        hulls = [cv.convexHull(p.reshape(-1, 1, 2)) for p in regions]
+        mser_mask = np.zeros((image.shape[0], image.shape[1], 1), dtype=np.uint8)
+        for contour in hulls:
+            if len(contour) > 2:
+                # If contour is too small, ignore it
+                if cv.contourArea(contour) < min_contour_area:
+                    cv.drawContours(mser_mask, [contour], -1, (255, 255, 255), -1)
+        mask = cv.bitwise_or(mask, mser_mask)
+        logger.debug(f"Time to create mser mask: {time() - t}")
 
-    # Combine the two masks
-    mask = cv.bitwise_or(colored_mask, mser_mask)
 
     # Create a mask of boring pixels
+    t = time()
     gray = cv.cvtColor(image, cv.COLOR_BGR2GRAY)
     shift_r = np.roll(gray, boring_shift, axis=1)
     shift_l = np.roll(gray, boring_shift * -1, axis=1)
@@ -91,16 +102,22 @@ def splice_images(image, boring_shift=1, min_contour_area=1500, max_aspect_ratio
     diff = diff_r * diff_l * diff_u * diff_d
 
     _, boring_mask = cv.threshold(diff, 0, 255, cv.THRESH_BINARY + cv.THRESH_OTSU)
+    logger.debug(f"Time to create boring mask: {time() - t}")
 
     # Minus the boring pixels from the mask
+    t = time()
     mask = cv.bitwise_and(mask, boring_mask)
+    logger.debug(f"Time to remove boring pixels: {time() - t}")
 
     # morphologyEx
+    t = time()
     kernel = np.ones((3, 3), np.uint8)
     mask = cv.morphologyEx(mask, cv.MORPH_CLOSE, kernel, iterations=5)
     mask = cv.morphologyEx(mask, cv.MORPH_OPEN, kernel, iterations=5)
+    logger.debug(f"Time to morphologyEx: {time() - t}")
 
     # Deblot
+    t = time()
     nb_blobs, im_with_separated_blobs, stats, _ = cv.connectedComponentsWithStats(mask)
     sizes = stats[:, -1]
     sizes = sizes[1:]
@@ -110,11 +127,15 @@ def splice_images(image, boring_shift=1, min_contour_area=1500, max_aspect_ratio
         if sizes[blob] >= 10000:
             im_result[im_with_separated_blobs == blob + 1] = 255
     mask = im_result.astype(np.uint8)
+    logger.debug(f"Time to deblot: {time() - t}")
 
     # Mask the image
+    t = time()
     masked_image = cv.bitwise_and(image, image, mask=mask)
+    logger.debug(f"Time to mask image: {time() - t}")
 
     # Find bounding boxes
+    t = time()
     gray = cv.cvtColor(masked_image, cv.COLOR_BGR2GRAY)
     contours, _ = cv.findContours(gray, cv.RETR_TREE, cv.CHAIN_APPROX_SIMPLE)
     contours = [c for c in contours if cv.contourArea(c) > min_contour_area]
@@ -125,8 +146,10 @@ def splice_images(image, boring_shift=1, min_contour_area=1500, max_aspect_ratio
         if w / h > max_aspect_ratio or w / h < max_aspect_ratio * 0.1:
             continue
         bounding_boxes.append((x, y, w, h))
+    logger.debug(f"Time to find bounding boxes: {time() - t}")
 
     # Remove overlapping bounding boxes
+    t = time()
     filtered_boxes = []
     for box in bounding_boxes:
         x, y, w, h = box
@@ -138,6 +161,7 @@ def splice_images(image, boring_shift=1, min_contour_area=1500, max_aspect_ratio
                 break
         if not contained:
             filtered_boxes.append(box)
+    logger.debug(f"Time to remove overlapping bounding boxes: {time() - t}")
 
     # Cut out the bounding boxes
     images = []
@@ -170,7 +194,7 @@ def match_size(images: list[np.ndarray]) -> list[np.ndarray]:
     return resized_images
 
 
-def skin_pixels(img: np.ndarray | list[np.ndarray], threshold=0.01,random_true:int=10) -> bool:
+def skin_pixels(img: np.ndarray | list[np.ndarray], threshold=0.01) -> bool:
 
     if type(img) == list:
         if len(img) == 0:
@@ -185,6 +209,7 @@ def skin_pixels(img: np.ndarray | list[np.ndarray], threshold=0.01,random_true:i
     total_pixels = img.shape[0] * img.shape[1]
     threshold = total_pixels * threshold
 
+
     # Convert image to HSV
     img_copy = img.copy()
     blured = cv.GaussianBlur(img_copy, (5, 5), 0)
@@ -195,7 +220,7 @@ def skin_pixels(img: np.ndarray | list[np.ndarray], threshold=0.01,random_true:i
     imageHSV = cv.cvtColor(blured, cv.COLOR_BGR2HSV)
     skinRegionHSV = cv.inRange(imageHSV, min_HSV, max_HSV)
 
-    return np.count_nonzero(skinRegionHSV) > threshold or randint(1,random_true) == 1
+    return np.count_nonzero(skinRegionHSV) > threshold
 
 
 class NudeNet:
@@ -388,3 +413,5 @@ class OpenNsfw:
     def is_nsfw(self, image: np.ndarray, threshold=0.6) -> bool:
         """Classify an image."""
         return next(self.classify([image], threshold))
+
+
