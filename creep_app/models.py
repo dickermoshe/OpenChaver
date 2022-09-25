@@ -3,14 +3,161 @@ import time
 from mss.windows import MSS
 import numpy as np
 import cv2 as cv
-
 from django.db import models
 from django.utils.html import mark_safe
+from google.oauth2.credentials import Credentials
 from django.core.files.base import ContentFile
+from django.conf import settings
+from solo.models import SingletonModel
+import requests
+from google_auth_oauthlib.flow import InstalledAppFlow
+import os
+from googleapiclient.discovery import build
+from google.auth.exceptions import RefreshError
+from email.message import EmailMessage
+import base64
+from google.auth.transport.requests import Request
+import random
 
 from creep_app.window import Window
 
 logger = logging.getLogger("django")
+
+
+def get_callback_process(queue):
+    import http.server
+
+    class MyHandler(http.server.BaseHTTPRequestHandler):
+        def do_GET(self):
+            self.send_response(200)
+            self.send_header("Content-type", "text/html")
+            self.end_headers()
+            self.wfile.write(b"OK")
+            self.server.code = self.path
+            self.server.stop = True
+
+    server = http.server.HTTPServer(("localhost", 8080), MyHandler)
+    server.stop = False
+    while not server.stop:
+        server.handle_request()
+    queue.put(server.code)
+
+
+class Config(SingletonModel):
+    """Configuration for the app"""
+
+    gmail_account = models.CharField(max_length=100, blank=True, null=True)
+    access_token = models.CharField(max_length=100, blank=True, null=True)
+    refresh_token = models.CharField(max_length=100, blank=True, null=True)
+
+    def __str__(self):
+        return "Config"
+
+    class Meta:
+        verbose_name = "Config"
+
+    @classmethod
+    def add_account(cls):
+        """Add a gmail account"""
+
+        try:
+            config = cls.objects.get()
+            logger.info("Account already added. You must delete it first")
+            return False
+        except cls.DoesNotExist:
+            config = cls()
+
+        os.environ["OAUTHLIB_RELAX_TOKEN_SCOPE"] = "1"
+        flow = InstalledAppFlow.from_client_config(
+            {
+                "installed": {
+                    "client_id": settings.GOOGLE_CLIENT_ID,
+                    "project_id": "openchaver",
+                    "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+                    "token_uri": "https://oauth2.googleapis.com/token",
+                    "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+                    "client_secret": settings.GOOGLE_CLIENT_SECRET,
+                    "redirect_uris": ["http://localhost"],
+                }
+            },
+            [
+                "https://www.googleapis.com/auth/gmail.send",
+                "https://www.googleapis.com/auth/userinfo.email",
+            ],
+        )
+        creds = flow.run_local_server(port=0)
+        config.gmail_account = creds.id_token["email"]
+        config.access_token = creds.token
+        config.refresh_token = creds.refresh_token
+        config.save()
+        return True
+
+    @property
+    def credentials(self):
+        """Return credentials"""
+
+        # Create credentials
+        creds = Credentials.from_authorized_user_info(
+            {
+                "access_token": self.access_token,
+                "refresh_token": self.refresh_token,
+                "token_uri": "https://oauth2.googleapis.com/token",
+                "client_id": settings.GOOGLE_CLIENT_ID,
+                "client_secret": settings.GOOGLE_CLIENT_SECRET,
+                "scopes": [
+                    "https://www.googleapis.com/auth/gmail.send",
+                    "https://www.googleapis.com/auth/userinfo.email",
+                ],
+            }
+        )
+
+        # Refresh token if needed
+        if creds.expired:
+            try:
+                creds.refresh(Request())
+            except RefreshError:
+                logger.error("Error refreshing token")
+                return None
+            self.access_token = creds.token
+            self.save()
+
+        return creds
+
+    @classmethod
+    def send_email(cls, subject, body:str):
+        """Send an email"""
+        config = cls.objects.get()
+        creds = config.credentials
+        service = build('gmail', 'v1', credentials=creds)
+
+        message = EmailMessage()
+
+        message["to"] = config.gmail_account
+        message["from"] = config.gmail_account
+        message["subject"] = subject
+
+        message.set_content(body)
+
+        encoded_message = base64.urlsafe_b64encode(message.as_bytes()).decode()
+
+        create_message = {
+            'raw': encoded_message
+        }
+        service.users().messages().send(userId="me", body=create_message).execute()
+
+    @classmethod
+    def remove_account(cls):
+        """Remove the gmail account"""
+
+        try:
+            config = cls.objects.get()
+        except cls.DoesNotExist:
+            logger.info("No account to remove")
+        
+        cls.send_email("Goodbye","Goodbye World")
+        config.delete()
+
+
 
 
 class Screenshot(models.Model):
@@ -37,9 +184,6 @@ class Screenshot(models.Model):
 
     #: Whether or not to keep the image for 7 days
     keep = models.BooleanField(default=False)
-
-    #: Bounding box for the image
-    bounding_boxes = models.JSONField(default=list)
 
     #: The date and time the screenshot was created
     created = models.DateTimeField(auto_now_add=True)
@@ -77,7 +221,6 @@ class Screenshot(models.Model):
         max_tries: int,
         invalid_title: str | None = None,
         stable_window: bool | int = True,
-
     ):
         """
         Grabs a screenshot from the active window
@@ -94,24 +237,28 @@ class Screenshot(models.Model):
             else:
                 logger.info("Found window: %s", window.title)
                 return window.image(sct), window.title, window.exec_name
-        
+
         # Otherwise, Respect the stable_window and invalid_title parameters
         else:
             window = Window.activeWindow(invalid_title=invalid_title)
             if window is None:
                 time.sleep(0.5)
-                return cls.grab_screenshot(sct, max_tries - 1, invalid_title, stable_window)
-            
+                return cls.grab_screenshot(
+                    sct, max_tries - 1, invalid_title, stable_window
+                )
+
             if stable_window != False:
                 for _ in range(int(stable_window) * 2):
                     if window.is_stable() == False:
                         time.sleep(0.5)
-                        return cls.grab_screenshot(sct, max_tries - 1, invalid_title, stable_window)
+                        return cls.grab_screenshot(
+                            sct, max_tries - 1, invalid_title, stable_window
+                        )
                     time.sleep(0.5)
-            
+
             logger.info("Found window: %s", window.title)
             return window.image(sct), window.title, window.exec_name
-            
+
     @classmethod
     def save_screenshot(
         cls,
@@ -120,7 +267,7 @@ class Screenshot(models.Model):
         exec_name: str,
         keep: bool = False,
         is_nsfw: bool | None = None,
-        bounding_boxes:list = [],
+        bounding_boxes: list = [],
     ):
         """
         Save an image to the database
@@ -148,12 +295,11 @@ class Screenshot(models.Model):
             return None
 
 
-
 class Alert(models.Model):
     """This is the model for an alert"""
 
     #: The screenshot that triggered the alert
-    screenshots = models.ManyToManyField(Screenshot , related_name="alerts")
+    screenshots = models.ManyToManyField(Screenshot, related_name="alerts")
 
     # Whether or not the alert has been sent
     sent = models.BooleanField(default=False)
@@ -166,76 +312,13 @@ class Alert(models.Model):
 
     class Meta:
         ordering = ["-created"]
-    
+
     def send(self):
         """Send the alert"""
         print("Sending alert")
         self.sent = True
         self.save()
-    
+
     @classmethod
     def send_alerts(cls):
         pass
-
-# class Report(models.Model):
-#     """A report of a nsfw content"""
-
-#     #: The screenshots that were reported
-#     screenshots = models.ManyToManyField(Screenshot , related_name="reports")
-
-#     #: Report Sent
-#     sent = models.BooleanField(default=False)
-
-#     #: Timestamp of when the report was created
-#     created = models.DateTimeField(auto_now_add=True)
-
-#     @classmethod
-#     def make_reports(cls):
-#         """
-#         Make reports of all the nsfw content
-
-#         :return: None
-#         """
-#         screenshots = Screenshot.objects.filter(is_nsfw=False, keep=False)
-
-#         # Break screenshots into groups of the hour they were taken
-#         screenshot_groups = {}
-#         for screenshot in screenshots:
-#             hour = screenshot.created.strftime("%Y-%m-%d %H")
-#             if hour not in screenshot_groups:
-#                 screenshot_groups[hour] = []
-#             screenshot_groups[hour].append(screenshot)
-
-#         # Mark 1 random screenshot from each group as keep
-#         for screenshots in screenshot_groups.values():
-#             random_index = randint(0, len(screenshots) - 1)
-#             screenshots[random_index].keep = True
-#             screenshots[random_index].save()
-
-#         # Delete all screenshots that are not marked as keep and are not nsfw
-#         screenshots = Screenshot.objects.filter(is_nsfw=False, keep=False)
-#         for screenshot in screenshots:
-#             try:
-#                 screenshot.image.delete()
-#             except:
-#                 pass
-#             screenshot.delete()
-
-#         # Create a report for each group
-#         screenshots = Screenshot.objects.filter(is_nsfw=True)
-#         screenshot_groups = {}
-#         for screenshot in screenshots:
-#             hour = screenshot.created.strftime("%Y-%m-%d %H")
-#             if hour not in screenshot_groups:
-#                 screenshot_groups[hour] = []
-#             screenshot_groups[hour].append(screenshot)
-#         for screenshots in screenshot_groups.values():
-#             report = cls.objects.create()
-#             report.screenshots.set(screenshots)
-#             report.save()
-
-#         # Delete all reports that are older than 7 days
-#         for report in cls.objects.filter(
-#             created__lte=datetime.now() - timedelta(days=7)
-#         ):
-#             report.delete()
