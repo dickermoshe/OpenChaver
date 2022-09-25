@@ -1,28 +1,21 @@
+# This module contains all the functions that are used to process the images
+
 import logging
+from io import BytesIO
+from time import time
+
 import cv2 as cv
 import numpy as np
 from PIL import Image
-import numpy as np
-from io import BytesIO
-from random import randint
-from time import time
+
+
+
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.DEBUG)
 
 def read_image_bgr(image):
-    """Read an image in BGR format.
-    Args
-        path: Path to the image.
-    """
     image = np.ascontiguousarray(Image.fromarray(image))
     return image[:, :, ::-1]
-
-
-def _preprocess_image(x):
-    x = x.astype(np.float32)
-    x -= [103.939, 116.779, 123.68]
-    return x
-
 
 def compute_resize_scale(image_shape, min_side=800, max_side=1333):
     (rows, cols, _) = image_shape
@@ -33,12 +26,10 @@ def compute_resize_scale(image_shape, min_side=800, max_side=1333):
         scale = max_side / largest_side
     return scale
 
-
 def resize_image(img, min_side=800, max_side=1333):
     scale = compute_resize_scale(img.shape, min_side=min_side, max_side=max_side)
     img = cv.resize(img, None, fx=scale, fy=scale)
     return img, scale
-
 
 def preprocess_image(
     image_path,
@@ -46,7 +37,8 @@ def preprocess_image(
     max_side,
 ):
     image = read_image_bgr(image_path)
-    image = _preprocess_image(image)
+    image = image.astype(np.float32)
+    image -= [103.939, 116.779, 123.68]
     image, scale = resize_image(image, min_side=min_side, max_side=max_side)
     return image, scale
 
@@ -170,7 +162,6 @@ def splice_images(image, boring_shift=1, min_contour_area=1500, max_aspect_ratio
 
     return images
 
-
 def match_size(images: list[np.ndarray]) -> list[np.ndarray]:
     """Resize images to the size of the largest image by adding black borders"""
     max_width = max([img.shape[1] for img in images])
@@ -192,7 +183,6 @@ def match_size(images: list[np.ndarray]) -> list[np.ndarray]:
         else:
             resized_images.append(img)
     return resized_images
-
 
 def skin_pixels(img: np.ndarray | list[np.ndarray], threshold=0.01) -> bool:
 
@@ -221,7 +211,6 @@ def skin_pixels(img: np.ndarray | list[np.ndarray], threshold=0.01) -> bool:
     skinRegionHSV = cv.inRange(imageHSV, min_HSV, max_HSV)
 
     return np.count_nonzero(skinRegionHSV) > threshold
-
 
 class NudeNet:
     def __init__(self):

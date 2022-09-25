@@ -39,6 +39,7 @@ INSTALLED_APPS = [
     "whitenoise.runserver_nostatic",
     'django.contrib.staticfiles',
     'django_cleanup.apps.CleanupConfig',
+    'solo',
     'creep_app'
 ]
 
@@ -169,20 +170,23 @@ LOGGING = {
             'propagate': True,
         },
         'detect': {
-            'handlers': ['console'],
+            'handlers': ['console','file'],
             'level': 'DEBUG',
-            'propagate': True,
+            'propagate': False,
         },
         'screenshot': {
-            'handlers': ['console'],
+            'handlers': ['console','file'],
             'level': 'DEBUG',
-            'propagate': True,
+            'propagate': False,
         }
         ,
         'alert': {
             'handlers': ['console'],
             'level': 'DEBUG',
-            'propagate': True,
+            'propagate': False,
         }
     }
 }
+
+GOOGLE_CLIENT_ID = "467599914446-3r5veoq7tvbmilpgh8kfvuuf9atptbnt.apps.googleusercontent.com"
+GOOGLE_CLIENT_SECRET = "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"
