@@ -18,13 +18,15 @@ def is_profane(s: str):
 def screenshot_process(
     queue: multiprocessing.Queue,
     max_tries: int = 120,
-    stable_window: int = 7,
+    stable_window: int = 10,
+    max_per_minute: int = 2,
 ) -> None:
     """
     This process will take screenshots and put them in a queue
 
     max_tries: The maximum number of tries to take a screenshot before taking one anyway
     stable_window: The number of tries that the screenshot must be stable for before taking one
+    max_per_minute: The maximum number of screenshots to take per minute
     """
     # Logger
     logger = logging.getLogger("screenshot")
@@ -50,8 +52,10 @@ def screenshot_process(
     logger.debug(f"Stable window: {stable_window}")
 
     # Loop forever
+    max_screen_per_second = max_per_minute / 60 
     while True:
         # Take a screenshot of the active window
+        start_time = time.time()
         try:
             
             logger.info("Taking Screenshot...")
@@ -63,7 +67,9 @@ def screenshot_process(
             )
 
             if image is None:
-                raise ScreenShotError("")
+                logger.info("Screenshot is None. Restarting...")
+                continue
+
 
             logger.info("Screenshot taken")
             logger.debug(f"Title: {title}")
@@ -105,7 +111,7 @@ def screenshot_process(
         
         # Check if the entire image is B&W
         try:
-            bw = color_in_image(image)
+            bw = not color_in_image(image)
             logger.info(f"Black and White: {bw}")
         except:
             bw = False
@@ -147,6 +153,10 @@ def screenshot_process(
 
         logger.info(f"Add to Queue: False")
         del opennsfw
+        
+        sleep_time = max_screen_per_second - (time.time() - start_time)
+        if sleep_time > 0:
+            time.sleep(sleep_time)
 
 
 def detect_process(

@@ -38,6 +38,9 @@ class Screenshot(models.Model):
     #: Whether or not to keep the image for 7 days
     keep = models.BooleanField(default=False)
 
+    #: Bounding box for the image
+    bounding_boxes = models.JSONField(default=list)
+
     #: The date and time the screenshot was created
     created = models.DateTimeField(auto_now_add=True)
 
@@ -117,6 +120,7 @@ class Screenshot(models.Model):
         exec_name: str,
         keep: bool = False,
         is_nsfw: bool | None = None,
+        bounding_boxes:list = [],
     ):
         """
         Save an image to the database
@@ -136,6 +140,7 @@ class Screenshot(models.Model):
             screenshot.exec_name = exec_name
             screenshot.keep = keep
             screenshot.is_nsfw = is_nsfw
+            screenshot.bounding_boxes = bounding_boxes
             screenshot.save()
             return screenshot
         except:
