@@ -128,16 +128,19 @@ class Screenshot(models.Model):
         """
 
         # Create a screenshot object
-        screenshot = cls()
-        _, buffer = cv.imencode(".png", img)
-        screenshot.image.save(f"{int(time.time())}.png", ContentFile(buffer))
-        screenshot.title = title
-        screenshot.exec_name = exec_name
-        screenshot.keep = keep
-        screenshot.is_nsfw = is_nsfw
-        screenshot.save()
-
-        return screenshot
+        try:
+            screenshot = cls()
+            _, buffer = cv.imencode(".png", img)
+            screenshot.image.save(f"{int(time.time())}.png", ContentFile(buffer))
+            screenshot.title = title
+            screenshot.exec_name = exec_name
+            screenshot.keep = keep
+            screenshot.is_nsfw = is_nsfw
+            screenshot.save()
+            return screenshot
+        except:
+            logger.exception("Could not save screenshot")
+            return None
 
 
 
