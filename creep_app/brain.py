@@ -347,6 +347,7 @@ class NudeNet:
             if detection["label"] in nsfw_labels and detection["score"] > threshold:
                 return True
         return False
+
 class OpenNsfw:
     def __init__(self):
         from django.conf import settings
