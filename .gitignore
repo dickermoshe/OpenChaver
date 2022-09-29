@@ -167,3 +167,13 @@ output/
 
 # Static files
 /staticfiles/
+
+# Images
+*.png
+*.jpg
+*.jpeg
+
+# Databases
+*.db
+*.db-shm
+*.db-wal
