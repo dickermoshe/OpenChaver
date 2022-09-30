@@ -177,3 +177,6 @@ output/
 *.db
 *.db-shm
 *.db-wal
+
+# Utils
+_utils/

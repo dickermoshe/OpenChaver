@@ -12,9 +12,11 @@ import mss
 
 try:
     from .image_utils.skin_detector import contains_skin
+    from .image_utils.obfuscate import blur, pixelate
     from .profanity import is_profane
 except ImportError:
     from image_utils.skin_detector import contains_skin
+    from image_utils.obfuscate import blur, pixelate
     from profanity import is_profane
 
 # Logger
@@ -131,6 +133,16 @@ class WinWindow:
         except:
             logger.exception("Unable to get window coordinates")
             raise WindowDestroyed
+    def obfuscate_image(self):
+        """
+        Return pixelated image
+
+        """
+        self.image = pixelate(self.image)
+        
+        
+
+
 
     def take(self):
         """Get a screenshot of the window"""
@@ -209,6 +221,7 @@ class WinWindow:
             # Take screenshot
             logger.debug("Taking screenshot")
             window.take()
+            window.obfuscate_image()
             return window
 
     def run_detection(
@@ -300,9 +313,13 @@ class WinWindow:
         opennsfw = opennsfw if opennsfw is not None else OpenNsfw()
         for i in images:
             if opennsfw.is_nsfw(i):
+                logger.debug("OpenNSFW detected NSFW image")
                 # Run NudeNet on the images
                 nudenet = nudenet if nudenet is not None else NudeNet()
                 if nudenet.is_nsfw(i):
+                    logger.debug("NudeNet detected NSFW image")
                     self.nsfw = True
                     logger.debug("NSFW image detected")
                     return
+                else:
+                    logger.debug("NudeNet did not detect NSFW image")

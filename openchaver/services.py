@@ -10,7 +10,7 @@ from random import randint
 import time
 import cv2 as cv
 from pathlib import Path
-import json
+import threading as th
 
 try:
     from window import WinWindow as Window
@@ -18,21 +18,16 @@ except:
     from .window import WinWindow as Window
 
 BASE_DIR = Path(__file__).parent
-image_database_url = 'sqlite:///' + str(BASE_DIR / 'images.db')
-chaver_configfile = BASE_DIR / 'chaver_config.json'
+image_database  = BASE_DIR / 'images.db'
+image_database_url = 'sqlite:///' + str(image_database)
+openchaver_configfile = BASE_DIR / 'openchaver_config.json'
 
 
 def random_scheduler(event: mp.Event,
                      interval: int | list[int, int] = [60, 300]):
     """
-    Screenshot Scheduler
-    Take a screenshot every `interval` seconds
-    params:
-        event: mp.Event
-            The event to set
-        interval: int | list[int,int]
-            The interval to wait between setting the event, if a list is
-            provided, a random number between the two numbers will be chosen.
+    NSFW Random Screenshot Scheduler
+    Sends events to the nsfw screenshot service at random intervals
     """
     while True:
         event.set()
@@ -40,12 +35,10 @@ def random_scheduler(event: mp.Event,
                                                             list) else interval
         time.sleep(t)
 
-
-def usage_scheduler(event: mp.Event, interval: int | list[int, int] = 10):
+def usage_scheduler(event: mp.Event,):
     """
-    Screenshot Scheduler
-    Take a screenshot when the user loads a new window,
-    wait `interval` seconds before taking another screenshot,
+    NSFW Usage Screenshot Scheduler
+    Sends events to the nsfw screenshot service when the user loads a new window,
     only uses a window whose title has been stable for at least 10 seconds
     """
     old_title = None
@@ -55,17 +48,13 @@ def usage_scheduler(event: mp.Event, interval: int | list[int, int] = 10):
                                                invalid_title=old_title).title
             event.set()
         except:
+            time.sleep(5)
             pass
-        finally:
-            t = randint(interval[0], interval[1]) if isinstance(
-                interval, list) else interval
-            time.sleep(t)
 
-
-def screenshooter_service(event: mp.Event, nsfw_screenshot_queue: mp.Queue):
+def nsfw_screenshooter(event: mp.Event, screenshot_queue: mp.Queue, interval: int = 10):
     """
-    Screenshooter Service
-    Shoot a screenshot when the event is set
+    NSFW Screenshooter Service
+    Shoot a screenshot when the event is set, and pass it to the storage service if it is NSFW
     """
     while True:
         event.wait()
@@ -74,97 +63,106 @@ def screenshooter_service(event: mp.Event, nsfw_screenshot_queue: mp.Queue):
             window = Window.grab_screenshot()
             window.run_detection()
             if window.nsfw:
-                nsfw_screenshot_queue.put(window)
+                screenshot_queue.put(window)
+            time.sleep(interval) # Never take more than 1 screenshot every 10 seconds
             del window
         except:
             pass
 
+def report_screenshooter(screenshot_queue: mp.Queue):
+    """
+    Report Screenshooter Service
+    Shoot a screenshot about every hour and pass it to the storage service
+    """
+    while True:
+        try:
+            window = Window.grab_screenshot()
+            screenshot_queue.put(window)
+            time.sleep(randint(2700, 4500))
+            del window
+        except:
+            pass
 
-def screenshot_storage_service(nsfw_screenshot_queue: mp.Queue):
+def screenshot_storage_service(screenshot_queue: mp.Queue):
     """
     Screenshot Storage Service
     """
     # Every 10 seconds set the event
-    db = dataset.connect(image_database_url)
+    try:
+        db = dataset.connect(image_database_url)
+    except:
+        # Delete the database file and try again
+        image_database.unlink()
+        db = dataset.connect(image_database_url)
+    
     table = db['images']
     while True:
-        window: Window = nsfw_screenshot_queue.get()
-
-        png = cv.imencode('.png', window.image)[1].tobytes()
-        
+        window: Window = screenshot_queue.get()
         table.insert(dict(
             exec_name=window.exec_name,
             title=window.title,
             nsfw=window.nsfw,
-            image=png,
+            image=window.image,
             timestamp=time.time(),
-            alerted=False
         ))
-
         del window
 
-def alert_service(minute_range: int = 5,detections: int = 3):
+def screenshot_upload_service():
     """
-    Screenshot Alert Service
-    If there are more than `detections` detections in the last `minute_range` minutes
-    send an alert
+    Screenshot Upload Service
     """
-    # Every 10 seconds set the event
-
-    db = dataset.connect(image_database_url)
+    try:
+        db = dataset.connect(image_database_url)
+    except:
+        # Delete the database file and try again
+        image_database.unlink()
+        db = dataset.connect(image_database_url)
     table = db['images']
     while True:
-        then = time.time() - (minute_range * 60)
-        rows = table.find(timestamp=dict(gt=then),alerted=False)
-        if len(rows) > detections:
-            # Mark the rows as alerted
-            for row in rows:
-                row['alerted'] = True
-                table.update(row, ['id'])
-            
-            # Send the alert
-            emails = json.load(chaver_configfile)['emails']
-            for email in emails:
-                pass
+        for row in table:
+            # Upload to OpenChaver
+            # Delete from database
 
-
-
-        
-
+            pass
 
 def main():
     """
     Screenshot Service
     """
     take_event = mp.Event()
-    filtered_screenshot_queue = mp.Queue()
+    screenshot_queue = mp.Queue()
 
-    random_scheduler_process = mp.Process(target=random_scheduler,
-                                          args=(take_event, ))
-    usage_scheduler_process = mp.Process(target=usage_scheduler,
-                                         args=(take_event, ))
-    screenshooter_process = mp.Process(target=screenshooter_service,
+    random_scheduler_thread = th.Thread(target=random_scheduler,
+                                        args=(take_event, ),daemon=True)
+    usage_scheduler_thread = th.Thread(target=usage_scheduler,
+                                         args=(take_event, ),daemon=True)
+                                         
+    nsfw_screenshooter_process = mp.Process(target=nsfw_screenshooter,
                                        args=(take_event,
-                                             filtered_screenshot_queue))
-    screenshot_storage_process = mp.Process(target=screenshot_storage_service,
-                                            args=(filtered_screenshot_queue, ))
-
-    random_scheduler_process.start()
-    usage_scheduler_process.start()
-    screenshooter_process.start()
-    screenshot_storage_process.start()
+                                             screenshot_queue),daemon=True)
+    
+    report_screenshooter_process = mp.Process(target=report_screenshooter,
+                                        args=(screenshot_queue,),daemon=True)
+     
+    screenshot_storage_thread = th.Thread(target=screenshot_storage_service,
+                                        args=(screenshot_queue,),daemon=True)
+     
+    random_scheduler_thread.start()
+    usage_scheduler_thread.start()
+    nsfw_screenshooter_process.start()
+    report_screenshooter_process.start()
+    screenshot_storage_thread.start()
+    
+    random_scheduler_thread.join()
+    usage_scheduler_thread.join()
+    nsfw_screenshooter_process.join()
+    report_screenshooter_process.join()
+    screenshot_storage_thread.join()
+                            
 
     # Print the process IDs
-    print(f"Random Scheduler Process ID: {random_scheduler_process.pid}")
-    print(f"Usage Scheduler Process ID: {usage_scheduler_process.pid}")
-    print(f"Screenshooter Process ID: {screenshooter_process.pid}")
-    print(f"Screenshot Storage Process ID: {screenshot_storage_process.pid}")
-
-    random_scheduler_process.join()
-    usage_scheduler_process.join()
-    screenshooter_process.join()
-    screenshot_storage_process.join()
-
+    print(f"NSFW Screenshooter Process ID: {nsfw_screenshooter_process.pid}")
+    print(f"Report Screenshooter Process ID: {report_screenshooter_process.pid}")
 
 if __name__ == "__main__":
     main()
