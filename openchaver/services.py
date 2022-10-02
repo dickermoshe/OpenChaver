@@ -9,10 +9,8 @@ from pynput import mouse
 
 try:
     from window import WinWindow as Window
-    from mouse import Mouse
 except:
     from .window import WinWindow as Window
-    from .mouse import Mouse
 
 BASE_DIR = Path(__file__).parent
 image_database = BASE_DIR / "images.db"
@@ -43,16 +41,6 @@ def idle_detection(idle_event: th.Event, interval: int = 10,reset_interval:int=3
                 idle_event.clear()
                 last_active = time.time()
                 logger.info(f"{idle_detection.__name__}: User is active")
-    
-
-def profane_scheduler(event: th.Event, interval: int = 60):
-    """
-    Profane Screenshot Scheduler
-    Sends events to the profane screenshot service at random intervals
-    """
-    while True:
-        event.set()
-        time.sleep(interval)
 
 def random_scheduler(event: th.Event, interval: int | list[int, int] = [60, 300]):
     """
@@ -214,7 +202,7 @@ def main():
         "idle_detection": {
             "target": idle_detection,
             "args": (idle_event,),
-            "kwargs": {},
+            "kwargs": {'interval': 60, 'reset_interval': 300},
             "daemon": True,
         },
         "random_scheduler": {
