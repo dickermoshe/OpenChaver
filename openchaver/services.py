@@ -8,14 +8,12 @@ from queue import Queue
 from pynput import mouse
 
 try:
+    from openchaver import image_database_path , image_database_url
     from window import WinWindow as Window
 except:
+    from . import image_database_path , image_database_url
     from .window import WinWindow as Window
 
-BASE_DIR = Path(__file__).parent
-image_database = BASE_DIR / "images.db"
-image_database_url = "sqlite:///" + str(image_database)
-openchaver_configfile = BASE_DIR / "openchaver_config.json"
 
 logger = logging.getLogger(__name__)
 
@@ -86,7 +84,6 @@ def usage_scheduler(
 def nsfw_screenshooter(
     take_event: th.Event,
     idle_event: th.Event,
-    screenshots_queue: Queue,
     interval: int = 10,
 ):
     """
@@ -102,11 +99,11 @@ def nsfw_screenshooter(
             logger.info(f"{nsfw_screenshooter.__name__}: Taking screenshot")
             window = Window.grab_screenshot()
             window.run_detection()
-            window.obfuscate_image()
+
             if window.nsfw:
-                screenshots_queue.put(window)
+                window.save_to_database()
                 logger.info(
-                    f"{nsfw_screenshooter.__name__}: Sending screenshot to storage service"
+                    f"{nsfw_screenshooter.__name__}: Saving screenshot to database"
                 )
 
             time.sleep(interval)  # Never take more than 1 screenshot every 10 seconds
@@ -116,7 +113,7 @@ def nsfw_screenshooter(
             pass
 
 
-def report_screenshooter(screenshots_queue: Queue):
+def report_screenshooter():
     """
     Report Screenshooter Service
     Shoot a screenshot about every hour and pass it to the storage service
@@ -126,11 +123,10 @@ def report_screenshooter(screenshots_queue: Queue):
             logger.info(f"{report_screenshooter.__name__}: Taking screenshot")
             window = Window.grab_screenshot()
             window.run_detection()
-            window.obfuscate_image()
             logger.info(
-                f"{report_screenshooter.__name__}: Sending screenshot to storage service"
+                f"{report_screenshooter.__name__}: Saving screenshot to database"
             )
-            screenshots_queue.put(window)
+            window.save_to_database()
             time.sleep(randint(2700, 4500))
             del window
         except:
@@ -138,34 +134,7 @@ def report_screenshooter(screenshots_queue: Queue):
             pass
 
 
-def screenshot_storage_service(screenshots_queue: Queue):
-    """
-    Screenshot Storage Service
-    """
-    # Every 10 seconds set the event
-    try:
-        db = dataset.connect(image_database_url)
-    except:
-        # Delete the database file and try again
-        image_database.unlink()
-        db = dataset.connect(image_database_url)
 
-    table = db["images"]
-    while True:
-        screenshots = []
-        while not screenshots_queue.empty():
-            screenshots.append(screenshots_queue.get())
-        for screenshot in screenshots:
-            w = dict(
-                exec_name=screenshot.exec_name,
-                title=screenshot.title,
-                nsfw=screenshot.nsfw,
-                image=screenshot.image,
-                timestamp=time.time(),
-            )
-            table.insert(w)
-        del screenshots
-        time.sleep(10)
 
 
 def screenshot_upload_service():
@@ -176,7 +145,7 @@ def screenshot_upload_service():
         db = dataset.connect(image_database_url)
     except:
         # Delete the database file and try again
-        image_database.unlink()
+        image_database_path.unlink()
         db = dataset.connect(image_database_url)
 
     table = db["images"]
@@ -225,12 +194,6 @@ def main():
         },
         "report_screenshooter": {
             "target": report_screenshooter,
-            "args": (screenshots_queue,),
-            "kwargs": {},
-            "daemon": True,
-        },
-        "screenshot_storage_service": {
-            "target": screenshot_storage_service,
             "args": (screenshots_queue,),
             "kwargs": {},
             "daemon": True,

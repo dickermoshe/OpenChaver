@@ -2,6 +2,7 @@
 import logging
 import ctypes
 import time
+from pathlib import Path
 
 import win32ui
 import win32process as wproc
@@ -9,12 +10,15 @@ import cv2 as cv
 import psutil
 import numpy as np
 import mss
+import dataset
 
 try:
+    from . import image_database_path , image_database_url
     from .image_utils.skin_detector import contains_skin
     from .image_utils.obfuscate import blur, pixelate
     from .profanity import is_profane
 except ImportError:
+    from openchaver import image_database_path , image_database_url
     from image_utils.skin_detector import contains_skin
     from image_utils.obfuscate import blur, pixelate
     from profanity import is_profane
@@ -22,6 +26,8 @@ except ImportError:
 # Logger
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.DEBUG)
+
+
 
 
 # Exceptions
@@ -218,6 +224,35 @@ class WinWindow:
             logger.debug("Taking screenshot")
             window.take()
             return window
+
+    def save_to_database(self):
+        """Save the image to database"""
+        try:
+            db = dataset.connect(image_database_url)
+        except:
+            # Delete the database file and try again
+            image_database_path.unlink()
+            db = dataset.connect(image_database_url)
+        
+        try:
+            table = db["images"]
+            self.obfuscate_image()
+
+            table.insert(dict(
+                title=self.title,
+                profane=self.profane,
+                nsfw = self.nsfw,
+                image=self.image,
+                exec_name=self.exec_name,
+                image=self.image,
+                timestamp = time.time()
+            ))
+        except:
+            logger.exception("Unable to save image to database")
+            pass
+
+        
+
 
     def run_detection(
         self,
