@@ -5,12 +5,14 @@ import time
 from pathlib import Path
 import threading as th
 from queue import Queue
-import mouseinfo
+
 
 try:
     from window import WinWindow as Window
+    from mouse import Mouse
 except:
     from .window import WinWindow as Window
+    from .mouse import Mouse
 
 BASE_DIR = Path(__file__).parent
 image_database = BASE_DIR / "images.db"
@@ -20,21 +22,25 @@ openchaver_configfile = BASE_DIR / "openchaver_config.json"
 logger = logging.getLogger(__name__)
 
 
-def idle_detection(idle_event):
+def idle_detection(idle_event: th.Event, interval: int = 10,reset_interval:int=300):
     """
     Check if the user is idle
-    If so send event to screenshot service to stop taking screenshots
+    If so send event to screenshot service to stop taking screenshots.
+    Every 5 minutes reset the idle timer
     """
+    
     while True:
-        try:
-            position = mouseinfo._winPosition()
-            time.sleep(10)
-            if position == mouseinfo._winPosition():
-                idle_event.set()
-            else:
-                idle_event.clear()
-        except:
-            pass
+        m = Mouse()
+        for _ in range(reset_interval / interval):
+            try:
+                if m.is_idle():
+                    idle_event.set()
+                    break
+                else:
+                    idle_event.clear()
+                time.sleep(interval)
+            except:
+                pass
 
 
 def random_scheduler(event: th.Event, interval: int | list[int, int] = [60, 300]):
