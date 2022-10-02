@@ -140,10 +140,6 @@ class WinWindow:
         """
         self.image = pixelate(self.image)
         
-        
-
-
-
     def take(self):
         """Get a screenshot of the window"""
 
@@ -221,7 +217,6 @@ class WinWindow:
             # Take screenshot
             logger.debug("Taking screenshot")
             window.take()
-            window.obfuscate_image()
             return window
 
     def run_detection(

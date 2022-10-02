@@ -1,6 +1,6 @@
 import cv2 as cv 
 import numpy as np
-def pixelate(img, scale =.2,max_width_return = 500):
+def pixelate(img, scale =.2,max_width_return = 512):
     """
     Pixelate an image to hide text.
     """
