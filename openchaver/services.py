@@ -5,7 +5,7 @@ import time
 from pathlib import Path
 import threading as th
 from queue import Queue
-
+from pynput import mouse
 
 try:
     from window import WinWindow as Window
@@ -22,6 +22,7 @@ openchaver_configfile = BASE_DIR / "openchaver_config.json"
 logger = logging.getLogger(__name__)
 
 
+
 def idle_detection(idle_event: th.Event, interval: int = 10,reset_interval:int=300):
     """
     Check if the user is idle
@@ -30,18 +31,28 @@ def idle_detection(idle_event: th.Event, interval: int = 10,reset_interval:int=3
     """
     
     while True:
-        m = Mouse()
-        for _ in range(reset_interval / interval):
-            try:
-                if m.is_idle():
-                    idle_event.set()
-                    break
-                else:
-                    idle_event.clear()
-                time.sleep(interval)
-            except:
-                pass
+        last_active = time.time()
+        if time.time() - last_active > reset_interval:
+            idle_event.clear()
+        
+        with mouse.Events() as events:
+            if events.get(interval) is None:
+                idle_event.set()
+                logger.info(f"{idle_detection.__name__}: User is idle")
+            else:
+                idle_event.clear()
+                last_active = time.time()
+                logger.info(f"{idle_detection.__name__}: User is active")
+    
 
+def profane_scheduler(event: th.Event, interval: int = 60):
+    """
+    Profane Screenshot Scheduler
+    Sends events to the profane screenshot service at random intervals
+    """
+    while True:
+        event.set()
+        time.sleep(interval)
 
 def random_scheduler(event: th.Event, interval: int | list[int, int] = [60, 300]):
     """
