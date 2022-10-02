@@ -5,13 +5,11 @@ import time
 from pathlib import Path
 import threading as th
 from queue import Queue
-
+import mouseinfo
 try:
     from window import WinWindow as Window
-    from watchdog import hello
 except:
     from .window import WinWindow as Window
-    from .watchdog import hello
 
 BASE_DIR = Path(__file__).parent
 image_database = BASE_DIR / "images.db"
@@ -20,6 +18,23 @@ openchaver_configfile = BASE_DIR / "openchaver_config.json"
 
 logger = logging.getLogger(__name__)
 
+def idle_detection(idle_event):
+    """
+    Check if the user is idle
+    If so send event to screenshot service to stop taking screenshots
+    """
+    while True:
+        try:
+            position = mouseinfo._winPosition()
+            time.sleep(10)
+            if position == mouseinfo._winPosition():
+                idle_event.set()
+            else:
+                idle_event.clear()
+        except:
+            pass
+
+        
 
 def random_scheduler(event: th.Event, interval: int | list[int, int] = [60, 300]):
     """
@@ -34,7 +49,6 @@ def random_scheduler(event: th.Event, interval: int | list[int, int] = [60, 300]
             else interval
         )
         time.sleep(t)
-        hello(BASE_DIR, random_scheduler.__name__)
 
 
 def usage_scheduler(
@@ -62,17 +76,17 @@ def usage_scheduler(
         except:  # This is raised when the window title is not stable or the window is invalid ( Closed )
             time.sleep(5)
 
-        hello(BASE_DIR, usage_scheduler.__name__)
 
 
-def nsfw_screenshooter(event: th.Event, screenshots_queue: Queue, interval: int = 10):
+def nsfw_screenshooter(take_event: th.Event,idle_event:th.Event, screenshots_queue: Queue, interval: int = 10):
     """
     NSFW Screenshooter Service
     Shoot a screenshot when the event is set, and pass it to the storage service if it is NSFW
     """
     while True:
-        event.wait()
-        event.clear()
+        take_event.wait()
+        while idle_event.is_set(): time.sleep(10)# Wait until the user is not idle
+        take_event.clear()
         try:
             logger.info(f"{nsfw_screenshooter.__name__}: Taking screenshot")
             window = Window.grab_screenshot()
@@ -88,7 +102,6 @@ def nsfw_screenshooter(event: th.Event, screenshots_queue: Queue, interval: int 
             logger.exception(f"{nsfw_screenshooter.__name__}: Error")
             pass
 
-        hello(BASE_DIR, nsfw_screenshooter.__name__)
 
 
 def report_screenshooter(screenshots_queue: Queue):
@@ -109,7 +122,6 @@ def report_screenshooter(screenshots_queue: Queue):
         except:
             logger.exception(f"{report_screenshooter.__name__}: Error")
             pass
-        hello(BASE_DIR, report_screenshooter.__name__)
 
 
 def screenshot_storage_service(screenshots_queue: Queue):
@@ -140,7 +152,6 @@ def screenshot_storage_service(screenshots_queue: Queue):
             table.insert(w)
         del screenshots
         time.sleep(10)
-        hello(BASE_DIR, screenshot_storage_service.__name__)
 
 
 def screenshot_upload_service():
@@ -165,7 +176,6 @@ def screenshot_upload_service():
             table.delete(id=id)
             pass
 
-        hello(BASE_DIR, screenshot_upload_service.__name__)
 
 
 def main():
@@ -174,6 +184,11 @@ def main():
     """
     screenshots_queue = Queue()
     take_event = th.Event()
+    idle_event = th.Event()
+    
+    idle_detection_thread = th.Thread(
+        target=idle_detection, args=(idle_event,), daemon=True
+    )
 
     random_scheduler_thread = th.Thread(
         target=random_scheduler, args=(take_event,), daemon=True
@@ -183,7 +198,7 @@ def main():
     )
 
     nsfw_screenshooter_thread = th.Thread(
-        target=nsfw_screenshooter, args=(take_event, screenshots_queue), daemon=True
+        target=nsfw_screenshooter, args=(take_event,idle_event,screenshots_queue,), daemon=True
     )
 
     report_screenshooter_thread = th.Thread(
@@ -197,7 +212,8 @@ def main():
         args=(screenshots_queue,),
         daemon=True,
     )
-
+    
+    idle_detection_thread.start()
     random_scheduler_thread.start()
     usage_scheduler_thread.start()
     nsfw_screenshooter_thread.start()
@@ -205,8 +221,10 @@ def main():
     screenshot_storage_thread.start()
 
     try:
-        while True:
-            time.sleep(1)
+        for thread in th.enumerate():
+            if not thread.is_alive():
+                t = th.Thread(target=thread._target, args=thread._args, daemon=True)
+                t.start()
     except KeyboardInterrupt:
         pass
 
