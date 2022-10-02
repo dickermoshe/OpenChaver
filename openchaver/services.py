@@ -6,6 +6,7 @@ from pathlib import Path
 import threading as th
 from queue import Queue
 import mouseinfo
+
 try:
     from window import WinWindow as Window
 except:
@@ -17,6 +18,7 @@ image_database_url = "sqlite:///" + str(image_database)
 openchaver_configfile = BASE_DIR / "openchaver_config.json"
 
 logger = logging.getLogger(__name__)
+
 
 def idle_detection(idle_event):
     """
@@ -34,7 +36,6 @@ def idle_detection(idle_event):
         except:
             pass
 
-        
 
 def random_scheduler(event: th.Event, interval: int | list[int, int] = [60, 300]):
     """
@@ -77,15 +78,20 @@ def usage_scheduler(
             time.sleep(5)
 
 
-
-def nsfw_screenshooter(take_event: th.Event,idle_event:th.Event, screenshots_queue: Queue, interval: int = 10):
+def nsfw_screenshooter(
+    take_event: th.Event,
+    idle_event: th.Event,
+    screenshots_queue: Queue,
+    interval: int = 10,
+):
     """
     NSFW Screenshooter Service
     Shoot a screenshot when the event is set, and pass it to the storage service if it is NSFW
     """
     while True:
         take_event.wait()
-        while idle_event.is_set(): time.sleep(10)# Wait until the user is not idle
+        while idle_event.is_set():
+            time.sleep(10)  # Wait until the user is not idle
         take_event.clear()
         try:
             logger.info(f"{nsfw_screenshooter.__name__}: Taking screenshot")
@@ -94,14 +100,15 @@ def nsfw_screenshooter(take_event: th.Event,idle_event:th.Event, screenshots_que
             window.obfuscate_image()
             if window.nsfw:
                 screenshots_queue.put(window)
-                logger.info(f"{nsfw_screenshooter.__name__}: Sending screenshot to storage service")
+                logger.info(
+                    f"{nsfw_screenshooter.__name__}: Sending screenshot to storage service"
+                )
 
             time.sleep(interval)  # Never take more than 1 screenshot every 10 seconds
             del window
         except:
             logger.exception(f"{nsfw_screenshooter.__name__}: Error")
             pass
-
 
 
 def report_screenshooter(screenshots_queue: Queue):
@@ -115,7 +122,9 @@ def report_screenshooter(screenshots_queue: Queue):
             window = Window.grab_screenshot()
             window.run_detection()
             window.obfuscate_image()
-            logger.info(f"{report_screenshooter.__name__}: Sending screenshot to storage service")
+            logger.info(
+                f"{report_screenshooter.__name__}: Sending screenshot to storage service"
+            )
             screenshots_queue.put(window)
             time.sleep(randint(2700, 4500))
             del window
@@ -164,18 +173,16 @@ def screenshot_upload_service():
         # Delete the database file and try again
         image_database.unlink()
         db = dataset.connect(image_database_url)
-    
+
     table = db["images"]
     while True:
         for row in table:
             id = row["id"]
             # Upload to OpenChaver
 
-
             # Delete from database
             table.delete(id=id)
             pass
-
 
 
 def main():
@@ -185,46 +192,72 @@ def main():
     screenshots_queue = Queue()
     take_event = th.Event()
     idle_event = th.Event()
-    
-    idle_detection_thread = th.Thread(
-        target=idle_detection, args=(idle_event,), daemon=True
-    )
 
-    random_scheduler_thread = th.Thread(
-        target=random_scheduler, args=(take_event,), daemon=True
-    )
-    usage_scheduler_thread = th.Thread(
-        target=usage_scheduler, args=(take_event,), daemon=True
-    )
+    threads = {
+        "idle_detection": {
+            "target": idle_detection,
+            "args": (idle_event,),
+            "kwargs": {},
+            "daemon": True,
+        },
+        "random_scheduler": {
+            "target": random_scheduler,
+            "args": (take_event,),
+            "kwargs": {},
+            "daemon": True,
+        },
+        "usage_scheduler": {
+            "target": usage_scheduler,
+            "args": (take_event,),
+            "kwargs": {},
+            "daemon": True,
+        },
+        "nsfw_screenshooter": {
+            "target": nsfw_screenshooter,
+            "args": (take_event, idle_event, screenshots_queue),
+            "kwargs": {},
+            "daemon": True,
+        },
+        "report_screenshooter": {
+            "target": report_screenshooter,
+            "args": (screenshots_queue,),
+            "kwargs": {},
+            "daemon": True,
+        },
+        "screenshot_storage_service": {
+            "target": screenshot_storage_service,
+            "args": (screenshots_queue,),
+            "kwargs": {},
+            "daemon": True,
+        },
+    }
 
-    nsfw_screenshooter_thread = th.Thread(
-        target=nsfw_screenshooter, args=(take_event,idle_event,screenshots_queue,), daemon=True
-    )
+    for k in threads.keys():
+        threads[k]["thread"] = th.Thread(
+            target=threads[k]["target"],
+            args=threads[k]["args"],
+            kwargs=threads[k]["kwargs"],
+            daemon=threads[k]["daemon"],
+        )
 
-    report_screenshooter_thread = th.Thread(
-        target=report_screenshooter,
-        args=(screenshots_queue,),
-        daemon=True,
-    )
-
-    screenshot_storage_thread = th.Thread(
-        target=screenshot_storage_service,
-        args=(screenshots_queue,),
-        daemon=True,
-    )
-    
-    idle_detection_thread.start()
-    random_scheduler_thread.start()
-    usage_scheduler_thread.start()
-    nsfw_screenshooter_thread.start()
-    report_screenshooter_thread.start()
-    screenshot_storage_thread.start()
+    for k in threads.keys():
+        threads[k]["thread"].start()
 
     try:
-        for thread in th.enumerate():
-            if not thread.is_alive():
-                t = th.Thread(target=thread._target, args=thread._args, daemon=True)
-                t.start()
+        while True:
+            for k in threads.keys():
+                if not threads[k]["thread"].is_alive():
+                    logger.error(
+                        'Thread "{}" is dead, restarting...'.format(threads[k]["target"].__name__)
+                    )
+                    threads[k]["thread"] = th.Thread(
+                        target=threads[k]["target"],
+                        args=threads[k]["args"],
+                        kwargs=threads[k]["kwargs"],
+                        daemon=threads[k]["daemon"],
+                    )
+                    threads[k]["thread"].start()
+            time.sleep(1)
     except KeyboardInterrupt:
         pass
 
