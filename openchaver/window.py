@@ -37,12 +37,6 @@ class NoWindowFound(Exception):
     pass
 
 
-class InvalidWindow(Exception):
-    """Window found is not valid"""
-
-    pass
-
-
 class UnstableWindow(Exception):
     """Window is not stable"""
 
@@ -182,7 +176,7 @@ class WinWindow:
             hwnd = win32ui.GetForegroundWindow()
             window = cls(hwnd)
             if window.title == invalid_title:
-                raise InvalidWindow
+                raise UnstableWindow
             else:
                 return window
         except:
@@ -193,11 +187,13 @@ class WinWindow:
         cls,
         stable: float | bool = False,
         invalid_title: str | None = None,
+        take = True,
     ):
         """
         Grabs a screenshot from the active window
         :param stable: Whether to wait for the window to be stable
         :param invalid_title: The title of the window to ignore
+        :param take : Whether to take a screenshot or not or just return the window
         """
         logger.debug("Grabbing screenshot...")
         logger.debug(f"Stable: {stable}")
@@ -222,7 +218,7 @@ class WinWindow:
 
             # Take screenshot
             logger.debug("Taking screenshot")
-            window.take()
+            if take: window.take()
             return window
 
     def save_to_database(self):
@@ -237,12 +233,10 @@ class WinWindow:
         try:
             table = db["images"]
             self.obfuscate_image()
-
             table.insert(dict(
                 title=self.title,
                 profane=self.profane,
                 nsfw = self.nsfw,
-                image=self.image,
                 exec_name=self.exec_name,
                 image=self.image,
                 timestamp = time.time()

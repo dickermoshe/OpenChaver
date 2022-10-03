@@ -2,56 +2,71 @@ import logging
 import dataset
 from random import randint
 import time
-from pathlib import Path
 import threading as th
-from queue import Queue
 from pynput import mouse
 
 try:
-    from openchaver import image_database_path , image_database_url
+    from openchaver import image_database_path, image_database_url
     from window import WinWindow as Window
+    from window import UnstableWindow
 except:
-    from . import image_database_path , image_database_url
+    from . import image_database_path, image_database_url
     from .window import WinWindow as Window
-
-
+    from .window import UnstableWindow
 logger = logging.getLogger(__name__)
 
+ch = logging.StreamHandler()
+ch.setLevel(logging.DEBUG)
+formatter = logging.Formatter('%(asctime)s - %(name)s -> %(funcName)s  %(levelname)s - %(message)s')
+ch.setFormatter(formatter)
+logger.addHandler(ch)
 
 
-def idle_detection(idle_event: th.Event, interval: int = 10,reset_interval:int=300):
+def idle_detection(idle_event: th.Event, interval: int = 60, reset_interval: int = 300):
     """
-    Check if the user is idle
+    Check if the user is idle every `interval` seconds
     If so send event to screenshot service to stop taking screenshots.
-    Every 5 minutes reset the idle timer
+    Every `reset_interval` seconds reset the idle timer
     """
-    
+
     while True:
-        last_active = time.time()
+
+        last_active = time.time()  # The last time the user was active
+
+        # Reset `idle_event` if `reset_interval` seconds have passed since the last time the user was active
         if time.time() - last_active > reset_interval:
+            logger.info(f"Resetting idle timer")
             idle_event.clear()
-        
+
         with mouse.Events() as events:
+            # Wait `interval` seconds for the user to be active
             if events.get(interval) is None:
                 idle_event.set()
-                logger.info(f"{idle_detection.__name__}: User is idle")
+                logger.info(f"User is idle")
             else:
                 idle_event.clear()
                 last_active = time.time()
-                logger.info(f"{idle_detection.__name__}: User is active")
+                logger.info(f"User is active")
+
+        time.sleep(5)  # Wait 5 second to lower power consumption
+
 
 def random_scheduler(event: th.Event, interval: int | list[int, int] = [60, 300]):
     """
     NSFW Random Screenshot Scheduler
-    Sends events to the nsfw screenshot service at random intervals
+    Sends events to the nsfw screenshot service at random intervals.
+    `interval` can be a single integer or a list of two integers.
+    If it is a list, the screenshot service will be called at a random interval between the two numbers.
     """
     while True:
         event.set()
+        logger.info(f"Sending screenshot event")
         t = (
             randint(interval[0], interval[1])
             if isinstance(interval, list)
             else interval
         )
+        logger.info(f"Waiting {t} seconds")
         time.sleep(t)
 
 
@@ -68,16 +83,24 @@ def usage_scheduler(
     old_time = time.time()
     while True:
         try:
-            if (
-                time.time() - old_time > 300
-            ):  # Reset after 5 minutes of the title not changing
+            # Reset after 5 minutes of the title not changing
+            if time.time() - old_time > 300:
                 old_title = None
-
-            old_title = Window.grab_screenshot(stable=10, invalid_title=old_title).title
-            logger.info(f"{usage_scheduler.__name__}: Sending screenshot event")
+            
+            # Get the title of the active window
+            old_title = Window.grab_screenshot(stable=10, invalid_title=old_title,take=False).title
+            
+           
             event.set()
+            logger.info(f"Sending screenshot event")
+
             old_time = time.time()  # Reset the timer
-        except:  # This is raised when the window title is not stable or the window is invalid ( Closed )
+
+        except UnstableWindow: # This is raised when the window title is not stable or the window is invalid ( Closed )
+            logger.exception(f"Unstable window. Continuing...")
+            time.sleep(5)
+        except:
+            logger.exception(f"Screenshot not taken | Screenshot not saved")
             time.sleep(5)
 
 
@@ -88,28 +111,30 @@ def nsfw_screenshooter(
 ):
     """
     NSFW Screenshooter Service
-    Shoot a screenshot when the event is set, and pass it to the storage service if it is NSFW
+    Shoot a screenshot when the event is set, and save it to the database
+    Never take a screenshot if the user is idle
+    Wait `interval` seconds between each screenshot
     """
     while True:
+        # Wait fot take event to be set, and the user to not be idle
         take_event.wait()
         while idle_event.is_set():
-            time.sleep(10)  # Wait until the user is not idle
+            time.sleep(10)
         take_event.clear()
+
         try:
-            logger.info(f"{nsfw_screenshooter.__name__}: Taking screenshot")
+            logger.info(f"Taking screenshot")
             window = Window.grab_screenshot()
             window.run_detection()
 
             if window.nsfw:
                 window.save_to_database()
-                logger.info(
-                    f"{nsfw_screenshooter.__name__}: Saving screenshot to database"
-                )
-
-            time.sleep(interval)  # Never take more than 1 screenshot every 10 seconds
+                logger.info(f"Saving screenshot to database")
+            
             del window
+            time.sleep(interval)
         except:
-            logger.exception(f"{nsfw_screenshooter.__name__}: Error")
+            logger.exception(f"Screenshot not taken | Screenshot not saved")
             pass
 
 
@@ -120,21 +145,16 @@ def report_screenshooter():
     """
     while True:
         try:
-            logger.info(f"{report_screenshooter.__name__}: Taking screenshot")
+            logger.info(f"Taking screenshot")
             window = Window.grab_screenshot()
             window.run_detection()
-            logger.info(
-                f"{report_screenshooter.__name__}: Saving screenshot to database"
-            )
+            logger.info(f"Saving screenshot to database")
             window.save_to_database()
-            time.sleep(randint(2700, 4500))
             del window
+            time.sleep(randint(2700, 4500)) # Wait between 45 and 75 minutes
         except:
-            logger.exception(f"{report_screenshooter.__name__}: Error")
+            logger.exception(f"Screenshot not taken | Screenshot not saved")
             pass
-
-
-
 
 
 def screenshot_upload_service():
@@ -163,7 +183,6 @@ def main():
     """
     Screenshot Service
     """
-    screenshots_queue = Queue()
     take_event = th.Event()
     idle_event = th.Event()
 
@@ -171,7 +190,7 @@ def main():
         "idle_detection": {
             "target": idle_detection,
             "args": (idle_event,),
-            "kwargs": {'interval': 60, 'reset_interval': 300},
+            "kwargs": {"interval": 60, "reset_interval": 300},
             "daemon": True,
         },
         "random_scheduler": {
@@ -188,13 +207,13 @@ def main():
         },
         "nsfw_screenshooter": {
             "target": nsfw_screenshooter,
-            "args": (take_event, idle_event, screenshots_queue),
+            "args": (take_event, idle_event,),
             "kwargs": {},
             "daemon": True,
         },
         "report_screenshooter": {
             "target": report_screenshooter,
-            "args": (screenshots_queue,),
+            "args": (),
             "kwargs": {},
             "daemon": True,
         },
@@ -211,13 +230,12 @@ def main():
     for k in threads.keys():
         threads[k]["thread"].start()
 
+    # Restart threads if they die and sleep for 5 seconds
     try:
         while True:
             for k in threads.keys():
                 if not threads[k]["thread"].is_alive():
-                    logger.error(
-                        'Thread "{}" is dead, restarting...'.format(threads[k]["target"].__name__)
-                    )
+                    logger.error(f'Thread "{threads[k]["target"].__name__}" is dead, restarting...')
                     threads[k]["thread"] = th.Thread(
                         target=threads[k]["target"],
                         args=threads[k]["args"],
@@ -225,7 +243,7 @@ def main():
                         daemon=threads[k]["daemon"],
                     )
                     threads[k]["thread"].start()
-            time.sleep(1)
+            time.sleep(5)
     except KeyboardInterrupt:
         pass
 
