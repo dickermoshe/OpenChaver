@@ -8,11 +8,11 @@ from pynput import mouse
 try:
     from openchaver import image_database_path, image_database_url
     from window import WinWindow as Window
-    from window import UnstableWindow
+    from window import UnstableWindow , NoWindowFound
 except:
     from . import image_database_path, image_database_url
     from .window import WinWindow as Window
-    from .window import UnstableWindow
+    from .window import UnstableWindow ,NoWindowFound
 logger = logging.getLogger(__name__)
 
 ch = logging.StreamHandler()
@@ -97,11 +97,14 @@ def usage_scheduler(
             old_time = time.time()  # Reset the timer
 
         except UnstableWindow: # This is raised when the window title is not stable or the window is invalid ( Closed )
-            logger.exception(f"Unstable window. Continuing...")
+            logger.info(f"Unstable window. Continuing...")
+        except NoWindowFound:
+            logger.info(f"No window found that matches your prefrences. Continuing...")
             time.sleep(5)
         except:
             logger.exception(f"Screenshot not taken | Screenshot not saved")
             time.sleep(5)
+
 
 
 def nsfw_screenshooter(
