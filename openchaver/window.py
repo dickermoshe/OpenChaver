@@ -2,7 +2,6 @@
 import logging
 import ctypes
 import time
-from pathlib import Path
 
 import win32ui
 import win32process as wproc
@@ -10,35 +9,39 @@ import cv2 as cv
 import psutil
 import numpy as np
 import mss
-import dataset
 
 try:
-    from . import image_database_path , image_database_url
     from .image_utils.skin_detector import contains_skin
+    from .image_utils.deblot import deblot
     from .image_utils.obfuscate import blur, pixelate
     from .profanity import is_profane
 except ImportError:
-    from openchaver import image_database_path , image_database_url
     from image_utils.skin_detector import contains_skin
+    from image_utils.deblot import deblot
     from image_utils.obfuscate import blur, pixelate
     from profanity import is_profane
 
 # Logger
 logger = logging.getLogger(__name__)
-logging.basicConfig(level=logging.DEBUG)
 
 
 
 
 # Exceptions
 class NoWindowFound(Exception):
-    """No Active Window Found"""
+    def __init__(self, title = None, message="No Active Window Found"):
+        self.message = message
+        self.current_title = title
+        super().__init__(self.message)
 
     pass
 
 
 class UnstableWindow(Exception):
-    """Window is not stable"""
+    def __init__(self, title = None, message="Window is Unstable"):
+        self.message = message
+        self.current_title = title
+        super().__init__(self.message)
 
     pass
 
@@ -106,6 +109,7 @@ class WinWindow:
         self.__dict__.update(state)
         self.hwnd = None
 
+
     def get_coordinates(self):
         """Get the coordinates of the window"""
 
@@ -133,14 +137,15 @@ class WinWindow:
         except:
             logger.exception("Unable to get window coordinates")
             raise WindowDestroyed
-    def obfuscate_image(self):
+
+    def obfuscate(self):
         """
         Return pixelated image
 
         """
         self.image = pixelate(self.image)
         
-    def take(self):
+    def take_screenshot(self):
         """Get a screenshot of the window"""
 
         # Get the coordinates of the window
@@ -148,9 +153,8 @@ class WinWindow:
 
         # Get the image
         with mss.mss() as sct:
-            logger.debug("Taking screenshot...")
             image = sct.grab(coordinates)
-            image = np.array(image)[:, :, :3]
+            image = np.array(image)[:, :, :3] # Remove alpha channel
 
         # Scale image to self.DEFAULT_DPI DPI
         if self.dpi != self.DEFAULT_DPI:
@@ -160,97 +164,49 @@ class WinWindow:
 
         self.image = image
 
-    def check_stable(self):
+    def stable_check(self) -> None:
         """Check if the window is stable"""
         try:
-            window_2 = WinWindow.activeWindow()
+            window_2 = WinWindow.get_active_window()
             if window_2.title != self.title:
-                raise UnstableWindow
+                raise UnstableWindow(window_2.title)
+        except UnstableWindow:
+            raise
         except:
             raise UnstableWindow
 
     @classmethod
-    def activeWindow(cls, invalid_title: str | None = None):
+    def get_active_window(cls, invalid_title: str | None = None,stable: bool|int = False):
         """Get the active window"""
         try:
+            # Get the active window
             hwnd = win32ui.GetForegroundWindow()
             window = cls(hwnd)
+
+            # Check for an invalid title
             if window.title == invalid_title:
-                raise UnstableWindow
-            else:
-                return window
+                raise NoWindowFound(window.title)
+            logger.debug(f"Active window: {window.title}")
+
+            
+            # Check if the window is stable
+            for _ in range(int(stable)):
+                window.stable_check()
+                time.sleep(1)
+            
+            return window
+        
+        except UnstableWindow:
+            raise
+        except NoWindowFound:
+            raise
         except:
             raise NoWindowFound
 
-    @classmethod
-    def grab_screenshot(
-        cls,
-        stable: float | bool = False,
-        invalid_title: str | None = None,
-        take = True,
-    ):
-        """
-        Grabs a screenshot from the active window
-        :param stable: Whether to wait for the window to be stable
-        :param invalid_title: The title of the window to ignore
-        :param take : Whether to take a screenshot or not or just return the window
-        """
-        logger.debug("Grabbing screenshot...")
-        logger.debug(f"Stable: {stable}")
-        logger.debug(f"Invalid title: {invalid_title}")
-
-        logger.debug("Getting active window")
-        window = cls.activeWindow(invalid_title)
-
-        if stable is False:
-            # Take screenshot instantly
-            logger.debug("Taking screenshot")
-            window.take()
-            return window
-        else:
-            # Wait for the window to be stable
-            wait = float(stable)
-            waited = 0
-            while waited < wait:
-                window.check_stable()
-                time.sleep(0.5)
-                waited += 0.5
-
-            # Take screenshot
-            logger.debug("Taking screenshot")
-            if take: window.take()
-            return window
-
-    def save_to_database(self):
-        """Save the image to database"""
-        try:
-            db = dataset.connect(image_database_url)
-        except:
-            # Delete the database file and try again
-            image_database_path.unlink()
-            db = dataset.connect(image_database_url)
-        
-        try:
-            table = db["images"]
-            self.obfuscate_image()
-            table.insert(dict(
-                title=self.title,
-                profane=self.profane,
-                nsfw = self.nsfw,
-                exec_name=self.exec_name,
-                image=self.image,
-                timestamp = time.time()
-            ))
-        except:
-            logger.exception("Unable to save image to database")
-            pass
-
-        
 
 
     def run_detection(
         self,
-        image: np.ndarray = None,
         opennsfw=None,
         nudenet=None,
     ):
@@ -258,10 +214,9 @@ class WinWindow:
             from .nsfw import NudeNet, OpenNsfw
         except ImportError:
             from nsfw import NudeNet, OpenNsfw
-        # This function contains the complex logic of the application
 
         # Get the image
-        image = image if image is not None else self.image
+        image = self.image
 
         # Check if there are skin pixels in the image
         # This is done to remove images that are definitely not NSFW
@@ -293,18 +248,8 @@ class WinWindow:
         mask = cv.morphologyEx(mask, cv.MORPH_CLOSE, kernel, iterations=1)
 
         # Deblot the mask
-        nb_blobs, im_with_separated_blobs, stats, _ = cv.connectedComponentsWithStats(
-            mask)
-        sizes = stats[:, -1]
-        sizes = sizes[1:]
-        nb_blobs -= 1
-        im_result = np.zeros((mask.shape))
-        min_size = (0.0025 * mask.shape[0] * mask.shape[1]
-                    )  # Set a relative minimum size for the blobs
-        for blob in range(nb_blobs):
-            if sizes[blob] >= min_size:
-                im_result[im_with_separated_blobs == blob + 1] = 255
-        mask = im_result.astype(np.uint8)
+        min_size = (0.0025 * mask.shape[0] * mask.shape[1])
+        mask = deblot(mask, min_size=min_size)
 
         # Morphological operations on the mask
         mask = cv.morphologyEx(mask, cv.MORPH_CLOSE, kernel, iterations=1)

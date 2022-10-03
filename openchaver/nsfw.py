@@ -14,8 +14,6 @@ except ImportError:
 
 # Logging
 logger = logging.getLogger(__name__)
-logging.basicConfig(level=logging.DEBUG)
-
 
 BASE_DIR = Path(__file__).resolve().parent
 
@@ -57,7 +55,7 @@ class NudeNet:
         self,
         images: list[np.ndarray],
         min_prob=None,
-        fast=False,
+        fast=True,
         batch_size=5,
     ) -> list[dict]:
         """Detect objects in an image."""

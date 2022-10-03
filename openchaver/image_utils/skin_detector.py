@@ -5,6 +5,7 @@ __author__ = 'Will Brennan'
 import logging
 import cv2
 import numpy as np
+from .deblot import deblot
 
 logger = logging.getLogger(__name__)
 
@@ -20,6 +21,7 @@ def count_skin_pixels(image:np.ndarray):
     kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (11, 11))
     skinMask = cv2.erode(skinMask, kernel, iterations = 2)
     skinMask = cv2.dilate(skinMask, kernel, iterations = 2)
+    skinMask = deblot(skinMask, 250)
     return np.sum(skinMask)
 
 def color_in_image(img: np.ndarray) -> bool:

@@ -1,26 +1,22 @@
 import logging
-import dataset
 from random import randint
 import time
 import threading as th
 from pynput import mouse
+from mss import ScreenShotError
 
 try:
-    from openchaver import image_database_path, image_database_url
+    from nsfw import OpenNsfw
     from window import WinWindow as Window
-    from window import UnstableWindow , NoWindowFound
+    from window import UnstableWindow , NoWindowFound, WindowDestroyed
+    from db import DB
 except:
-    from . import image_database_path, image_database_url
     from .window import WinWindow as Window
-    from .window import UnstableWindow ,NoWindowFound
+    from .window import UnstableWindow ,NoWindowFound,WindowDestroyed
+    from .nsfw import OpenNsfw
+    from .db import DB
+
 logger = logging.getLogger(__name__)
-
-ch = logging.StreamHandler()
-ch.setLevel(logging.DEBUG)
-formatter = logging.Formatter('%(asctime)s - %(name)s -> %(funcName)s  %(levelname)s - %(message)s')
-ch.setFormatter(formatter)
-logger.addHandler(ch)
-
 
 def idle_detection(idle_event: th.Event, interval: int = 60, reset_interval: int = 300):
     """
@@ -77,35 +73,37 @@ def usage_scheduler(
     NSFW Usage Screenshot Scheduler
     Sends events to the nsfw screenshot service when the user loads a new window,
     only uses a window whose title has been stable for at least 10 seconds.
-    After 5 minutes the title is considered stable again.
+    After 2.5 minutes the title is considered stable again.
     """
     old_title = None
     old_time = time.time()
     while True:
         try:
-            # Reset after 5 minutes of the title not changing
-            if time.time() - old_time > 300:
+            # Reset after 2.5 minutes of the title not changing
+            if time.time() - old_time > 150:
+                logger.info(f"Resetting usage timer")
                 old_title = None
             
             # Get the title of the active window
-            old_title = Window.grab_screenshot(stable=10, invalid_title=old_title,take=False).title
+            logger.info(f"Getting Active Window")
+            logger.debug(f"Old title: {old_title}")
+            old_title = Window.get_active_window(stable=10, invalid_title=old_title).title
+            logger.debug(f"Active Window Title: {old_title}")
             
-           
-            event.set()
+            
             logger.info(f"Sending screenshot event")
+            event.set()
 
-            old_time = time.time()  # Reset the timer
+            old_time = time.time()  # Set the time to the current time
 
-        except UnstableWindow: # This is raised when the window title is not stable or the window is invalid ( Closed )
+        except UnstableWindow as e: # This is raised when the window title is not stable
             logger.info(f"Unstable window. Continuing...")
-        except NoWindowFound:
+        
+        except NoWindowFound as e: 
             logger.info(f"No window found that matches your prefrences. Continuing...")
+            old_title = e.current_title
             time.sleep(5)
-        except:
-            logger.exception(f"Screenshot not taken | Screenshot not saved")
-            time.sleep(5)
-
-
+        
 
 def nsfw_screenshooter(
     take_event: th.Event,
@@ -118,6 +116,9 @@ def nsfw_screenshooter(
     Never take a screenshot if the user is idle
     Wait `interval` seconds between each screenshot
     """
+
+    opennsfw = OpenNsfw()
+    db = DB()
     while True:
         # Wait fot take event to be set, and the user to not be idle
         take_event.wait()
@@ -126,19 +127,33 @@ def nsfw_screenshooter(
         take_event.clear()
 
         try:
+            logger.info(f"Getting Active Window")
+            window = Window.get_active_window()
+            logger.debug(f"Active Window Title: {window.title}")
+
             logger.info(f"Taking screenshot")
-            window = Window.grab_screenshot()
-            window.run_detection()
+            window.take_screenshot()
+
+            logger.info(f"Running NSFW detection")
+            window.run_detection(opennsfw=opennsfw)
 
             if window.nsfw:
-                window.save_to_database()
+                logger.info(f"Obfuscating screenshot")
+                window.obfuscate()
                 logger.info(f"Saving screenshot to database")
-            
+                db.save_window(window)
+                
             del window
             time.sleep(interval)
-        except:
-            logger.exception(f"Screenshot not taken | Screenshot not saved")
+        
+        except WindowDestroyed:
+            logger.info(f"Window destroyed. Continuing...")
             pass
+
+        except ScreenShotError:
+            logger.exception(f"MSS Error. Continuing...")
+            pass
+            
 
 
 def report_screenshooter():
@@ -146,41 +161,35 @@ def report_screenshooter():
     Report Screenshooter Service
     Shoot a screenshot about every hour and save it to the database
     """
+    opennsfw = OpenNsfw()
+    db = DB()
     while True:
         try:
+            logger.info(f"Getting Active Window")
+            window = Window.get_active_window()
+            logger.debug(f"Active Window Title: {window.title}")
+
             logger.info(f"Taking screenshot")
-            window = Window.grab_screenshot()
-            window.run_detection()
+            window.take_screenshot()
+
+            logger.info(f"Running NSFW detection")
+            window.run_detection(opennsfw=opennsfw)
+
+            logger.info(f"Obfuscating screenshot")
+            window.obfuscate()
+
             logger.info(f"Saving screenshot to database")
-            window.save_to_database()
+            db.save_window(window)
+
             del window
             time.sleep(randint(2700, 4500)) # Wait between 45 and 75 minutes
-        except:
-            logger.exception(f"Screenshot not taken | Screenshot not saved")
+        except WindowDestroyed:
+            logger.info(f"Window destroyed. Continuing...")
             pass
 
-
-def screenshot_upload_service():
-    """
-    Screenshot Upload Service
-    """
-    try:
-        db = dataset.connect(image_database_url)
-    except:
-        # Delete the database file and try again
-        image_database_path.unlink()
-        db = dataset.connect(image_database_url)
-
-    table = db["images"]
-    while True:
-        for row in table:
-            id = row["id"]
-            # Upload to OpenChaver
-
-            # Delete from database
-            table.delete(id=id)
+        except ScreenShotError:
+            logger.exception(f"MSS Error. Continuing...")
             pass
-
 
 def main():
     """
