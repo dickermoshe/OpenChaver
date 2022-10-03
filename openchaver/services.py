@@ -141,7 +141,7 @@ def nsfw_screenshooter(
 def report_screenshooter():
     """
     Report Screenshooter Service
-    Shoot a screenshot about every hour and pass it to the storage service
+    Shoot a screenshot about every hour and save it to the database
     """
     while True:
         try:
@@ -181,11 +181,13 @@ def screenshot_upload_service():
 
 def main():
     """
-    Screenshot Service
+    Main function
     """
+    # Create events
     take_event = th.Event()
     idle_event = th.Event()
 
+    # Define the screenshot services
     threads = {
         "idle_detection": {
             "target": idle_detection,
@@ -219,6 +221,7 @@ def main():
         },
     }
 
+    # Create threads and start them
     for k in threads.keys():
         threads[k]["thread"] = th.Thread(
             target=threads[k]["target"],
@@ -230,7 +233,7 @@ def main():
     for k in threads.keys():
         threads[k]["thread"].start()
 
-    # Restart threads if they die and sleep for 5 seconds
+    # Loop -> Restart threads if they die and sleep for 5 seconds
     try:
         while True:
             for k in threads.keys():
