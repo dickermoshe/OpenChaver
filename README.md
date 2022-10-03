@@ -7,12 +7,11 @@ The working services are:
 - [x] `scheduler` - Sends events to the `screenshot` service.
 - [x] `screenshot` - Takes screenshots of the active window. Sends the screenshot to the `storage` service.
 - [x] `storage` - Stores the screenshots in the `sqlite` database.
+- [x] Add a `idle` service that will pause the `screenshot` service if the user is idle.
+- [x] ~~Add a `keystroke` service that will send events to the `screenshot` service if NSFW text is detected.~~ (Window Defender treats this as a virus. Any workarounds will be unstable.)
 
 TODO:
 - [ ] Add a `upload` service to upload the screenshots to the remote server.
-- [ ] Add a `keystroke` service that will send events to the `screenshot` service if NSFW text is detected.
-- [ ] Add a `idle` service that will pause the `screenshot` service if the user is idle.
-
 - [ ] Create the remote backend server that will send reports and alerts to the chaver.
 - [ ] Create the installation script that will install the application.
 - [ ] Create the uninstallation script that will uninstall the application.
