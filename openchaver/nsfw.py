@@ -9,10 +9,8 @@ from pathlib import Path
 
 try:
     from .image_utils.resize import *
-    from .image_utils.lite_classifier_utils import *
 except ImportError:
     from image_utils.resize import *
-    from image_utils.lite_classifier_utils import *
 
 # Logging
 logger = logging.getLogger(__name__)
@@ -151,17 +149,13 @@ class NudeNet:
 
 class OpenNsfw:
     def __init__(self):
-        import onnxruntime
-
         logger.debug("Initializing Detector")
         classify_model_path = BASE_DIR / "nsfw_model" / "open-nsfw.onnx"
 
         if not classify_model_path.exists():
             raise FileNotFoundError(f"Model file not found")
 
-        self.classify_model = onnxruntime.InferenceSession(
-            str(classify_model_path), providers=["CPUExecutionProvider"]
-        )
+        self.lite_model = cv.dnn.readNet(str(classify_model_path))
 
 
     def classify(self, images: list[np.ndarray],threshold = 0.6) -> list[dict]:
@@ -172,32 +166,10 @@ class OpenNsfw:
         # https://pypi.org/project/opennsfw-standalone/
         preprocessed_images = []
         for image in images:
-            image = cv.cvtColor(image, cv.COLOR_BGR2RGB)
-            image = Image.fromarray(image)
 
-            
-            if image.mode != "RGB":
-                image = image.convert("RGB")
+            image = cv.resize(image, (224, 224), interpolation=cv.INTER_LINEAR)
 
-            image = image.resize((256, 256), Image.Resampling.BILINEAR)
-
-            cropped_size = 224
-            image_width, image_height = image.size
-            image = image.crop(
-                (
-                    (image_width - cropped_size) / 2,
-                    (image_height - cropped_size) / 2,
-                    (image_width + cropped_size) / 2,
-                    (image_height + cropped_size) / 2,
-                )
-            )
-            with BytesIO() as jpeg_buffer:
-                image.save(jpeg_buffer, format="JPEG")
-                jpeg_buffer.seek(0)
-
-                image_jpeg_data = np.array(Image.open(jpeg_buffer), dtype=np.float32, copy=False)
-
-            image_jpeg_data = image_jpeg_data[:, :, ::-1]
+            image_jpeg_data = image.astype(np.float32, copy=False)
 
             image_jpeg_data -= np.array([104, 117, 123], dtype=np.float32)
 
@@ -208,74 +180,14 @@ class OpenNsfw:
 
         # Run model
         for image in preprocessed_images:
-            input_name = self.classify_model.get_inputs()[0].name
-            outputs = [output.name for output in self.classify_model.get_outputs()]
-            result = self.classify_model.run(outputs, {input_name: image})
-            yield result[0][0][1] > threshold
+            self.lite_model.setInput(image)
+            result = self.lite_model.forward()
+            yield result[0][1] > threshold
+
     
     def is_nsfw(self, image: np.ndarray, threshold=0.6) -> bool:
         """Classify an image."""
         return next(self.classify([image], threshold))
-
-
-class OpenNsfw:
-    def __init__(self):
-        import onnxruntime
-
-        logger.debug("Initializing Detector")
-        classify_model_path = BASE_DIR / "nsfw_model" / "open-nsfw.onnx"
-
-        if not classify_model_path.exists():
-            raise FileNotFoundError(f"Model file not found")
-
-        self.classify_model = onnxruntime.InferenceSession(
-            str(classify_model_path), providers=["CPUExecutionProvider"]
-        )
-
-
-    def classify(self, images: list[np.ndarray],threshold = 0.6) -> list[dict]:
-        """Classify an image."""
-        
-        # Preprocess images
-        # Copied from
-        # https://pypi.org/project/opennsfw-standalone/
-        preprocessed_images = []
-        for image in images:
-            image = cv.cvtColor(image, cv.COLOR_BGR2RGB)
-            image = Image.fromarray(image)
-
-            
-            if image.mode != "RGB":
-                image = image.convert("RGB")
-
-            image = image.resize((224, 224), Image.Resampling.BILINEAR)
-
-            with BytesIO() as jpeg_buffer:
-                image.save(jpeg_buffer, format="JPEG")
-                jpeg_buffer.seek(0)
-
-                image_jpeg_data = np.array(Image.open(jpeg_buffer), dtype=np.float32, copy=False)
-
-            image_jpeg_data = image_jpeg_data[:, :, ::-1]
-
-            image_jpeg_data -= np.array([104, 117, 123], dtype=np.float32)
-
-            image_jpeg_data = np.expand_dims(image_jpeg_data, axis=0)
-
-            preprocessed_images.append(image_jpeg_data)
-
-
-        # Run model
-        for image in preprocessed_images:
-            input_name = self.classify_model.get_inputs()[0].name
-            outputs = [output.name for output in self.classify_model.get_outputs()]
-            result = self.classify_model.run(outputs, {input_name: image})
-            yield result[0][0][1] > threshold
-    
-    def is_nsfw(self, image: np.ndarray, threshold=0.6) -> bool:
-        """Classify an image."""
-        return next(self.classify([image], threshold))
-
 
 
 
