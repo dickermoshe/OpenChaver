@@ -5,8 +5,9 @@ import time
 import threading as th
 from pynput import mouse
 from mss import ScreenShotError
+import requests
 
-from . import config_path
+from . import config_path, BASE_URL
 from .window import WinWindow as Window
 from .window import UnstableWindow ,NoWindowFound,WindowDestroyed
 from .nsfw import OpenNsfw
@@ -188,6 +189,17 @@ def report_screenshooter():
             logger.exception(f"MSS Error. Continuing...")
             pass
 
+def screenshot_uploader(userid:str):
+    """Uploads Screenshots"""
+    db = DB()
+    while True:
+        try:
+            for window in db.pop_windows():
+                requests.post(BASE_URL + '/api/v1/screenshots', json=window, headers={"Authorization": f"Bearer {userid}"})
+        except:
+            logger.exception("Error uploading screenshot")
+        time.sleep(30)
+
 def main():
     """
     Main function
@@ -230,6 +242,12 @@ def main():
         "report_screenshooter": {
             "target": report_screenshooter,
             "args": (),
+            "kwargs": {},
+            "daemon": True,
+        },
+        "screenshot_uploader": {
+            "target": screenshot_uploader,
+            "args": (userid,),
             "kwargs": {},
             "daemon": True,
         },
