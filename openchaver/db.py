@@ -57,24 +57,34 @@ class ImageDB:
             image_database_path.unlink()
             self.db = dataset.connect(image_database_url)
         
+        # Just to create the sqlite file
+        self.db['init'].insert(dict(timestamp=time.time()))
+        
+        
         # Set the file permissions to block other users and groups from accesing the database
         oschmod.set_mode(str(image_database_path),  stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR)
-
+        
+        
         self.image_table = self.db["images"]
+
+        
 
 class ConfigDB:
     def __init__(self) -> None:
-        new_db = config_database_path.exists()
+        new_db = not config_database_path.exists()
         self.db = dataset.connect(config_database_url)
+        
+        self.db['init'].insert(dict(timestamp=time.time()))
+        
         if new_db:
-            oschmod.set_mode(str(config_database_url),  stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR)
+            oschmod.set_mode(str(config_database_path),  stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR)
+        
+        self.user_table = self.db["user"]
     
     def save_user(self, userid, uninstall_code):
-        self.user_table = self.db["users"]
-        self.config_table.insert(dict(userid=userid, uninstall_code=uninstall_code))
+        self.user_table.insert(dict(userid=userid, uninstall_code=uninstall_code))
     
     def get_user(self):
-        self.user_table = self.db["users"]
         return self.user_table.find_one()
     
     @property

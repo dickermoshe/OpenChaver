@@ -6,7 +6,7 @@ BASE_DIR = Path(__file__).parent
 
 image_database_path = BASE_DIR / "images.db"
 image_database_url = "sqlite:///" + str(image_database_path)
-config_database_path = BASE_DIR.parent / "config.db"
+config_database_path = BASE_DIR.parent.parent / "config.db"
 config_database_url = "sqlite:///" + str(config_database_path)
 
 logger = logging.getLogger()
@@ -23,6 +23,5 @@ file_handler.setLevel(logging.DEBUG)
 file_handler.setFormatter(formatter)
 logger.addHandler(file_handler)
 
-# Make all new files readable by everyone (for Windows)
 
 
