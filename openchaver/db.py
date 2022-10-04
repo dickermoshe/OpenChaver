@@ -2,7 +2,6 @@ import dataset
 import time
 import oschmod
 import stat
-import json
 from . import image_database_path, image_database_url
 from .window import WinWindow as Window
 
@@ -16,7 +15,7 @@ class DB:
         for i in self.image_table:
             i = dict(i)
             i['image'] = i['image'].tolist()
-            yield json.dumps(i)
+            yield i
             self.image_table.delete(id=i["id"])
 
     def save_window(self, window: Window, recursive=False):
