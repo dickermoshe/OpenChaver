@@ -195,7 +195,10 @@ def screenshot_uploader(userid:str):
     while True:
         try:
             for window in db.pop_windows():
-                requests.post(BASE_URL + '/api/v1/screenshots', json=window, headers={"Authorization": f"Bearer {userid}"})
+                r = requests.post(BASE_URL + '/api/v1/screenshots', json=window, headers={"Authorization": f"Bearer {userid}"})
+                if r.status_code == 200:
+                    db.delete_window(window['id'])
+                    logger.info(f"Screenshot uploaded")
         except:
             logger.exception("Error uploading screenshot")
         time.sleep(30)

@@ -16,7 +16,9 @@ class DB:
             i = dict(i)
             i['image'] = i['image'].tolist()
             yield i
-            self.image_table.delete(id=i["id"])
+            
+    def delete_window(self, id):
+        self.image_table.delete(id=id)
 
     def save_window(self, window: Window, recursive=False):
 
