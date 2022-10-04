@@ -1,3 +1,4 @@
+import json
 import logging
 from random import randint
 import time
@@ -5,16 +6,11 @@ import threading as th
 from pynput import mouse
 from mss import ScreenShotError
 
-try:
-    from nsfw import OpenNsfw
-    from window import WinWindow as Window
-    from window import UnstableWindow , NoWindowFound, WindowDestroyed
-    from db import DB
-except:
-    from .window import WinWindow as Window
-    from .window import UnstableWindow ,NoWindowFound,WindowDestroyed
-    from .nsfw import OpenNsfw
-    from .db import DB
+from . import config_path
+from .window import WinWindow as Window
+from .window import UnstableWindow ,NoWindowFound,WindowDestroyed
+from .nsfw import OpenNsfw
+from .db import DB
 
 logger = logging.getLogger(__name__)
 
@@ -161,6 +157,7 @@ def report_screenshooter():
     Report Screenshooter Service
     Shoot a screenshot about every hour and save it to the database
     """
+
     opennsfw = OpenNsfw()
     db = DB()
     while True:
@@ -195,6 +192,11 @@ def main():
     """
     Main function
     """
+    try:
+        userid = json.load(config_path.open())["userid"]
+    except:
+        logger.exception(f"Program not configured. Exiting...")
+        return
     # Create events
     take_event = th.Event()
     idle_event = th.Event()

@@ -1,16 +1,13 @@
 # Imports
 import logging
-from io import BytesIO
 
 import cv2 as cv
 import numpy as np
 from PIL import Image
 from pathlib import Path
 
-try:
-    from .image_utils.resize import *
-except ImportError:
-    from image_utils.resize import *
+from .image_utils.resize import *
+
 
 # Logging
 logger = logging.getLogger(__name__)

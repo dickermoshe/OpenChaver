@@ -2,12 +2,10 @@ import dataset
 import time
 import oschmod
 import stat
-try:
-    from . import image_database_path, image_database_url
-    from .window import WinWindow as Window
-except:
-    from __init__ import image_database_path, image_database_url
-    from window import WinWindow as Window
+
+from . import image_database_path, image_database_url
+from .window import WinWindow as Window
+
 
 
 class DB:
@@ -52,5 +50,5 @@ class DB:
         
         # Set the file permissions to block other users and groups from accesing the database
         oschmod.set_mode(str(image_database_path),  stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR)
-        
+
         self.image_table = self.db["images"]

@@ -10,16 +10,12 @@ import psutil
 import numpy as np
 import mss
 
-try:
-    from .image_utils.skin_detector import contains_skin
-    from .image_utils.deblot import deblot
-    from .image_utils.obfuscate import blur, pixelate
-    from .profanity import is_profane
-except ImportError:
-    from image_utils.skin_detector import contains_skin
-    from image_utils.deblot import deblot
-    from image_utils.obfuscate import blur, pixelate
-    from profanity import is_profane
+
+from .image_utils.skin_detector import contains_skin
+from .image_utils.deblot import deblot
+from .image_utils.obfuscate import blur, pixelate
+from .profanity import is_profane
+
 
 # Logger
 logger = logging.getLogger(__name__)
@@ -210,10 +206,8 @@ class WinWindow:
         opennsfw=None,
         nudenet=None,
     ):
-        try:
-            from .nsfw import NudeNet, OpenNsfw
-        except ImportError:
-            from nsfw import NudeNet, OpenNsfw
+        from .nsfw import NudeNet, OpenNsfw
+
 
         # Get the image
         image = self.image
