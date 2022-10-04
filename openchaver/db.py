@@ -1,13 +1,14 @@
+from pprint import pprint
 import dataset
 import time
 import oschmod
 import stat
-from . import image_database_path, image_database_url
+from . import image_database_path, image_database_url,config_database_path, config_database_url
 from .window import WinWindow as Window
 
 
 
-class DB:
+class ImageDB:
     def __init__(self) -> None:
         self.create_db()
 
@@ -60,3 +61,22 @@ class DB:
         oschmod.set_mode(str(image_database_path),  stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR)
 
         self.image_table = self.db["images"]
+
+class ConfigDB:
+    def __init__(self) -> None:
+        new_db = config_database_path.exists()
+        self.db = dataset.connect(config_database_url)
+        if new_db:
+            oschmod.set_mode(str(config_database_url),  stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR)
+    
+    def save_user(self, userid, uninstall_code):
+        self.user_table = self.db["users"]
+        self.config_table.insert(dict(userid=userid, uninstall_code=uninstall_code))
+    
+    def get_user(self):
+        self.user_table = self.db["users"]
+        return self.user_table.find_one()
+    
+    @property
+    def user_exist(self):
+        return self.get_user() is not None

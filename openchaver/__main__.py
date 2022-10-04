@@ -11,8 +11,8 @@ def monitor():
 @click.argument("uninstall_code")
 def setup(userid, uninstall_code):
     """Add the user to the client computer"""
-    from .setup import setup_user
-    setup_user(userid, uninstall_code)
+    from .setup import setup
+    setup(userid, uninstall_code)
 
 @click.command()
 @click.argument("uninstall_code")

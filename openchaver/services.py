@@ -7,11 +7,11 @@ from pynput import mouse
 from mss import ScreenShotError
 import requests
 
-from . import config_path, BASE_URL
+from . import BASE_URL
 from .window import WinWindow as Window
 from .window import UnstableWindow ,NoWindowFound,WindowDestroyed
 from .nsfw import OpenNsfw
-from .db import DB
+from .db import ImageDB, ConfigDB
 
 logger = logging.getLogger(__name__)
 
@@ -115,7 +115,7 @@ def nsfw_screenshooter(
     """
 
     opennsfw = OpenNsfw()
-    db = DB()
+    db = ImageDB()
     while True:
         # Wait fot take event to be set, and the user to not be idle
         take_event.wait()
@@ -160,7 +160,7 @@ def report_screenshooter():
     """
 
     opennsfw = OpenNsfw()
-    db = DB()
+    db = ImageDB()
     while True:
         try:
             logger.info(f"Getting Active Window")
@@ -191,7 +191,7 @@ def report_screenshooter():
 
 def screenshot_uploader(userid:str):
     """Uploads Screenshots"""
-    db = DB()
+    db = ImageDB()
     while True:
         try:
             for window in db.pop_windows():
@@ -203,15 +203,17 @@ def screenshot_uploader(userid:str):
             logger.exception("Error uploading screenshot")
         time.sleep(30)
 
+
 def main():
     """
     Main function
     """
-    try:
-        userid = json.load(config_path.open())["userid"]
-    except:
-        logger.exception(f"Program not configured. Exiting...")
+    db = ConfigDB()
+    user = db.get_user()
+    if user is None:
+        logger.error(f"No user found in database")
         return
+
     # Create events
     take_event = th.Event()
     idle_event = th.Event()
@@ -250,7 +252,7 @@ def main():
         },
         "screenshot_uploader": {
             "target": screenshot_uploader,
-            "args": (userid,),
+            "args": (user['userid'],),
             "kwargs": {},
             "daemon": True,
         },
