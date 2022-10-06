@@ -1,28 +1,54 @@
-from pprint import pprint
+from pathlib import Path
 import dataset
 import time
 import oschmod
 import stat
-from . import image_database_path, image_database_url,config_database_path, config_database_url
+from . import BASE_DIR
 from .window import WinWindow as Window
 
 
+class BaseDB:
+    def __init__(self,name:str,path : Path,is_restricted=True):
+        self.db_file = path / name
+        self.url = 'sqlite:///' + str(self.db_file)
+        self.is_restricted = is_restricted
+        self.create()
+        self.connect()
+    
+    def create(self,recreate=False):
+        if recreate and self.db_file.exists():
+            self.db_file.unlink()
 
-class ImageDB:
-    def __init__(self) -> None:
-        self.create_db()
+        if not self.db_file.exists() or recreate:
+            self.db = dataset.connect(self.url)
+            self.db.create_table('init')
+            self.db['init'].insert(dict(time=time.time()))
+            self.db.commit()
+        
+        if self.is_restricted:
+            oschmod.set_mode(str(self.db_file),  stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR)
+    
+    def connect(self):
+        self.db = dataset.connect(self.url)
+        
 
+
+
+class ImageDB(BaseDB):
+    def __init__(self):
+        super().__init__("images.db",BASE_DIR)
+        self.image_table = self.db["images"]
+    
     def pop_windows(self):
         for i in self.image_table:
             i = dict(i)
             i['image'] = i['image'].tolist()
             yield i
-            
+    
     def delete_window(self, id):
         self.image_table.delete(id=id)
 
     def save_window(self, window: Window, recursive=False):
-
         w = dict(
             title=window.title,
             profane=window.profane,
@@ -40,45 +66,14 @@ class ImageDB:
         # But only once.
         except:
             if not recursive:
-                self.create_db(recreate=True)
+                self.create(recreate=True)
                 self.save_window(window, recursive=True)
             else:
                 raise
 
-    def create_db(self, recreate=False):
-
-        if recreate and image_database_path.exists():
-            image_database_path.unlink()
-
-        try:
-            self.db = dataset.connect(image_database_url)
-        except:
-            # Delete the database file and try again
-            image_database_path.unlink()
-            self.db = dataset.connect(image_database_url)
-        
-        # Just to create the sqlite file
-        self.db['init'].insert(dict(timestamp=time.time()))
-        
-        
-        # Set the file permissions to block other users and groups from accesing the database
-        oschmod.set_mode(str(image_database_path),  stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR)
-        
-        
-        self.image_table = self.db["images"]
-
-        
-
-class ConfigDB:
+class ConfigDB(BaseDB):
     def __init__(self) -> None:
-        new_db = not config_database_path.exists()
-        self.db = dataset.connect(config_database_url)
-        
-        self.db['init'].insert(dict(timestamp=time.time()))
-        
-        if new_db:
-            oschmod.set_mode(str(config_database_path),  stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR)
-        
+        super().__init__("config.db",BASE_DIR.parent)
         self.user_table = self.db["user"]
     
     def save_user(self, userid, uninstall_code):

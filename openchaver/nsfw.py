@@ -4,15 +4,14 @@ import logging
 import cv2 as cv
 import numpy as np
 from PIL import Image
-from pathlib import Path
+from . import BASE_DIR
+
 
 from .image_utils.resize import *
 
 
 # Logging
 logger = logging.getLogger(__name__)
-
-BASE_DIR = Path(__file__).resolve().parent
 
 class NudeNet:
     def __init__(self):
@@ -22,6 +21,7 @@ class NudeNet:
         detection_model_path = (
             BASE_DIR / "nsfw_model" / "detector_v2_default_checkpoint.onnx"
         )
+        logger.debug(f"Loading detection model from {detection_model_path}")
         if not detection_model_path.exists():
             raise FileNotFoundError(f"Model file not found")
 
@@ -147,6 +147,7 @@ class OpenNsfw:
         logger.debug("Initializing Detector")
         classify_model_path = BASE_DIR / "nsfw_model" / "open-nsfw.onnx"
 
+        logger.debug(f"Loading classification model from {classify_model_path}")
         if not classify_model_path.exists():
             raise FileNotFoundError(f"Model file not found")
 

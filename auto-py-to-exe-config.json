@@ -15,7 +15,11 @@
   },
   {
    "optionDest": "console",
-   "value": true
+   "value": false
+  },
+  {
+   "optionDest": "name",
+   "value": "OpenChaver"
   },
   {
    "optionDest": "ascii",
@@ -67,7 +71,7 @@
   },
   {
    "optionDest": "datas",
-   "value": "C:/Users/Moshe Dicker/Documents/DickerSystems/OpenChaver/openchaver/nsfw_model;openchaver/nsfw_model/"
+   "value": "C:/Users/Moshe Dicker/Documents/DickerSystems/OpenChaver/openchaver/nsfw_model;nsfw_model/"
   }
  ],
  "nonPyinstallerOptions": {
