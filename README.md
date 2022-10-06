@@ -14,7 +14,7 @@ The working services are:
 - [x] Add a `upload` service to upload the screenshots to the remote server.
 
 TODO:
-- [ ] Create the remote backend server that will send reports and alerts to the chaver.
+- [ ] Create the remote backend server that will send reports and alerts to the chaver. -> [openchaver-server](https://github.com/dickermoshe/OpenChaver-Server)
 - [ ] Create the installation script that will install the application.
 - [ ] Create the update script that will update the application.
 - [ ] Create the documentation for the application.
