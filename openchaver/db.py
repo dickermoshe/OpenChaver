@@ -31,9 +31,6 @@ class BaseDB:
     def connect(self):
         self.db = dataset.connect(self.url)
         
-
-
-
 class ImageDB(BaseDB):
     def __init__(self):
         super().__init__("images.db",BASE_DIR)

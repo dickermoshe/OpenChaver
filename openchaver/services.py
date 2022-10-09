@@ -6,6 +6,7 @@ import threading as th
 from pynput import mouse
 from mss import ScreenShotError
 import requests
+import psutil
 
 from . import BASE_URL
 from .window import WinWindow as Window
@@ -216,6 +217,16 @@ def main():
         logger.error(f"No user found in database")
         return
     
+    # Get the old pid
+    old_pid = db.get_pid()
+    if old_pid is not None:
+        try:
+            process = psutil.Process(old_pid)
+            if process.name() == "python.exe" or process.name() == "openchaver.exe":
+                process.terminate()
+        except psutil.NoSuchProcess:
+            logger.info(f"Old process with pid {old_pid} not found")
+
     # Get the current threads PID
     pid = os.getpid()
     logger.info(f"PID: {pid}")
