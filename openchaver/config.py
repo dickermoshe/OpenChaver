@@ -38,6 +38,6 @@ def gui():
     
     db = ConfigDB()
     if db.configured:
-        uninstall_gui()
+        uninstall_gui(db.get_device()['device_id'])
     else:
         configure_gui()
