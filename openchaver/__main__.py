@@ -21,6 +21,13 @@ def uninstall(uninstall_code):
     from .config import uninstall
     uninstall(uninstall_code)
 
+@click.command()
+def gui():
+    """Run the GUI"""
+    from .config import gui
+    gui()
+
+
 @click.group()
 def cli():
     pass
@@ -28,6 +35,7 @@ def cli():
 cli.add_command(monitor)
 cli.add_command(configure)
 cli.add_command(uninstall)
+cli.add_command(gui)
 
 if __name__ == "__main__":
     cli()

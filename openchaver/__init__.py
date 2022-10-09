@@ -3,6 +3,7 @@ import sys
 import logging
 from logging.handlers import TimedRotatingFileHandler
 BASE_URL = "https://openchaver.com/"
+API_BASE_URL = "https://api.openchaver.com/"
 
 # Check if app is being run from a frozen state
 if getattr(sys, 'frozen', False):
