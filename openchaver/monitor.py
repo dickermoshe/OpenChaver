@@ -205,29 +205,37 @@ def screenshot_uploader(userid:str):
         time.sleep(30)
 
 
-def main():
+def monitor_service():
     """
     Main function
     """
+    logger.info(f"Starting monitor service")
+
+    # Connect to config database
+    logger.info(f"Creating Config DB")
     db = ConfigDB()
 
     # User check 
     user = db.get_user()
     if user is None:
-        logger.error(f"No user found in database")
+        logger.error(f"OpenChaver is not configured.")
         return
+    else:
+        logger.info(f"OpenChaver is configured.")
     
-    # Get the old pid
-    old_pid = db.get_pid()
+    # Kill the old monitor service
+    old_pid = db.get_pid('monitor')
+    logger.info(f"Old PID: {old_pid}")
     if old_pid is not None:
         try:
             process = psutil.Process(old_pid)
-            if process.name() == "python.exe" or process.name() == "openchaver.exe":
+            if process.name().lower() in ['python.exe', 'python3.exe','openchaver.exe']:
+                logger.info(f"Killing old monitor service")
                 process.terminate()
         except psutil.NoSuchProcess:
             logger.info(f"Old process with pid {old_pid} not found")
 
-    # Get the current threads PID
+    # Get the current threads PID and save it to the database
     pid = os.getpid()
     logger.info(f"PID: {pid}")
     db.save_pid("monitor",pid)
@@ -304,7 +312,3 @@ def main():
             time.sleep(5)
     except KeyboardInterrupt:
         pass
-
-
-if __name__ == "__main__":
-    main()

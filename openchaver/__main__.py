@@ -3,8 +3,8 @@ import click
 @click.command()
 def monitor():
     """Monitor the client computer and upload screenshots to the server - This is the main service"""
-    from .services import main
-    main()
+    from .monitor import monitor_service
+    monitor_service()
 
 @click.command()
 @click.argument("userid")
