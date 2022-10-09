@@ -3,6 +3,7 @@ import logging
 from random import randint
 import time
 import threading as th
+
 from pynput import mouse
 from mss import ScreenShotError
 import requests
@@ -10,11 +11,12 @@ import psutil
 
 from . import BASE_URL
 from .window import WinWindow as Window
-from .window import UnstableWindow ,NoWindowFound,WindowDestroyed
+from .window import UnstableWindow, NoWindowFound, WindowDestroyed
 from .nsfw import OpenNsfw
 from .db import ImageDB, ConfigDB
 
 logger = logging.getLogger(__name__)
+
 
 def idle_detection(idle_event: th.Event, interval: int = 60, reset_interval: int = 300):
     """
@@ -81,27 +83,28 @@ def usage_scheduler(
             if time.time() - old_time > 150:
                 logger.info(f"Resetting usage timer")
                 old_title = None
-            
+
             # Get the title of the active window
             logger.info(f"Getting Active Window")
             logger.debug(f"Old title: {old_title}")
-            old_title = Window.get_active_window(stable=10, invalid_title=old_title).title
+            old_title = Window.get_active_window(
+                stable=10, invalid_title=old_title
+            ).title
             logger.debug(f"Active Window Title: {old_title}")
-            
-            
+
             logger.info(f"Sending screenshot event")
             event.set()
 
             old_time = time.time()  # Set the time to the current time
 
-        except UnstableWindow as e: # This is raised when the window title is not stable
+        except UnstableWindow as e:  # This is raised when the window title is not stable
             logger.info(f"Unstable window. Continuing...")
-        
-        except NoWindowFound as e: 
+
+        except NoWindowFound as e:
             logger.info(f"No window found that matches your prefrences. Continuing...")
             old_title = e.current_title
             time.sleep(5)
-        
+
 
 def nsfw_screenshooter(
     take_event: th.Event,
@@ -140,10 +143,10 @@ def nsfw_screenshooter(
                 window.obfuscate()
                 logger.info(f"Saving screenshot to database")
                 db.save_window(window)
-                
+
             del window
             time.sleep(interval)
-        
+
         except WindowDestroyed:
             logger.info(f"Window destroyed. Continuing...")
             pass
@@ -151,7 +154,6 @@ def nsfw_screenshooter(
         except ScreenShotError:
             logger.exception(f"MSS Error. Continuing...")
             pass
-            
 
 
 def report_screenshooter():
@@ -181,7 +183,7 @@ def report_screenshooter():
             db.save_window(window)
 
             del window
-            time.sleep(randint(2700, 4500)) # Wait between 45 and 75 minutes
+            time.sleep(randint(2700, 4500))  # Wait between 45 and 75 minutes
         except WindowDestroyed:
             logger.info(f"Window destroyed. Continuing...")
             pass
@@ -190,24 +192,47 @@ def report_screenshooter():
             logger.exception(f"MSS Error. Continuing...")
             pass
 
-def screenshot_uploader(userid:str):
+
+def screenshot_uploader(userid: str):
     """Uploads Screenshots"""
     db = ImageDB()
     while True:
         try:
             for window in db.pop_windows():
-                r = requests.post(BASE_URL + '/api/v1/screenshots', json=window, headers={"Authorization": f"Bearer {userid}"})
+                r = requests.post(
+                    BASE_URL + "/api/v1/screenshots",
+                    json=window,
+                    headers={"Authorization": f"Bearer {userid}"},
+                )
                 if r.status_code == 200:
-                    db.delete_window(window['id'])
+                    db.delete_window(window["id"])
                     logger.info(f"Screenshot uploaded")
         except:
             logger.exception("Error uploading screenshot")
         time.sleep(30)
 
+def kill_monitor():
+    """Kills the monitor"""
+    # Kill the old monitor service
+    db = ConfigDB()
+    old_pid = db.get_pid("monitor")
+    logger.info(f"Old PID: {old_pid}")
+    if old_pid is not None:
+        try:
+            process = psutil.Process(old_pid)
+            if process.name().lower() in [
+                "python.exe",
+                "python3.exe",
+                "openchaver.exe",
+            ]:
+                logger.info(f"Killing old monitor service")
+                process.terminate()
+        except psutil.NoSuchProcess:
+            logger.info(f"Old process with pid {old_pid} not found")
 
 def monitor_service():
     """
-    Main function
+    Main monitor function
     """
     logger.info(f"Starting monitor service")
 
@@ -215,31 +240,23 @@ def monitor_service():
     logger.info(f"Creating Config DB")
     db = ConfigDB()
 
-    # User check 
+    # User check
     user = db.get_user()
     if user is None:
         logger.error(f"OpenChaver is not configured.")
         return
     else:
         logger.info(f"OpenChaver is configured.")
-    
+
     # Kill the old monitor service
-    old_pid = db.get_pid('monitor')
-    logger.info(f"Old PID: {old_pid}")
-    if old_pid is not None:
-        try:
-            process = psutil.Process(old_pid)
-            if process.name().lower() in ['python.exe', 'python3.exe','openchaver.exe']:
-                logger.info(f"Killing old monitor service")
-                process.terminate()
-        except psutil.NoSuchProcess:
-            logger.info(f"Old process with pid {old_pid} not found")
+    kill_monitor()
+
 
     # Get the current threads PID and save it to the database
     pid = os.getpid()
     logger.info(f"PID: {pid}")
-    db.save_pid("monitor",pid)
-    
+    db.save_pid("monitor", pid)
+
     # Create events
     take_event = th.Event()
     idle_event = th.Event()
@@ -266,7 +283,10 @@ def monitor_service():
         },
         "nsfw_screenshooter": {
             "target": nsfw_screenshooter,
-            "args": (take_event, idle_event,),
+            "args": (
+                take_event,
+                idle_event,
+            ),
             "kwargs": {},
             "daemon": True,
         },
@@ -278,7 +298,7 @@ def monitor_service():
         },
         "screenshot_uploader": {
             "target": screenshot_uploader,
-            "args": (user['userid'],),
+            "args": (user["userid"],),
             "kwargs": {},
             "daemon": True,
         },
@@ -293,6 +313,7 @@ def monitor_service():
             daemon=threads[k]["daemon"],
         )
 
+    # Start threads
     for k in threads.keys():
         threads[k]["thread"].start()
 
@@ -301,7 +322,9 @@ def monitor_service():
         while True:
             for k in threads.keys():
                 if not threads[k]["thread"].is_alive():
-                    logger.error(f'Thread "{threads[k]["target"].__name__}" is dead, restarting...')
+                    logger.error(
+                        f'Thread "{threads[k]["target"].__name__}" is dead, restarting...'
+                    )
                     threads[k]["thread"] = th.Thread(
                         target=threads[k]["target"],
                         args=threads[k]["args"],

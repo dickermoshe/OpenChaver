@@ -71,16 +71,22 @@ class ImageDB(BaseDB):
 class ConfigDB(BaseDB):
     def __init__(self) -> None:
         super().__init__("config.db",BASE_DIR.parent)
-        self.user_table = self.db["user"]
+        self.device_table = self.db["device_table"]
         self.pid_table = self.db["pid"]
     
-    def save_user(self, userid, uninstall_code):
-        # User ID is the devices UUID
-        self.user_table.insert(dict(userid=userid, uninstall_code=uninstall_code))
+    def save_device(self, device: dict):
+        # Check if any device is already registered
+        if self.device_table.find_one():
+            raise Exception("Device already registered")
+        else:
+            self.device_table.insert(device)
     
-    def get_user(self):
-        return self.user_table.find_one()
+    def get_device(self):
+        return self.device_table.find_one()
     
+    def wipe_device(self):
+        self.device_table.delete()
+
     def save_pid(self, process:str,pid:int):
         self.pid_table.upsert(dict(process=process,pid=pid),["process"])
     
@@ -88,5 +94,5 @@ class ConfigDB(BaseDB):
         return self.pid_table.find_one(process=process)['pid']
     
     @property
-    def user_exist(self):
-        return self.get_user() is not None
+    def configured(self):
+        return self.get_device() is not None

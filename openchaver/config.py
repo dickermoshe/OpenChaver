@@ -1,30 +1,22 @@
 import os
-import psutil
 import time
+
 from . import BASE_DIR
 from .db import ConfigDB
+from .monitor import kill_monitor
 
-
-def setup(userid, uninstall_code):
-    """Setup the user on the client computer"""
+def configure(device_id, uninstall_code):
+    """Configure the client computer"""
     
     db = ConfigDB()
-    if db.user_exist:
+    if db.configured:
         raise Exception("User already exists")
     else:
-        db.save_user(userid, uninstall_code)
-
-def kill_monitor():
-    """Kill the monitor process"""
-    db = ConfigDB()
-    pid = db.get_pid("monitor")
-    if pid:
-        p = psutil.Process(pid)
-        p.terminate()
-        db.pid_table.delete(id=pid)
-    else:
-        raise Exception("Monitor process not found")
-    
+        device = {
+            "device": device_id,
+            "uninstall_code": uninstall_code,
+        }
+        db.save_device(device)
 
 def run_uninstall_script():
     script = f"""
@@ -44,7 +36,7 @@ def uninstall(uninstall_code):
     if user:
         if user["uninstall_code"] == uninstall_code:
             kill_monitor()
-            db.user_table.delete(id=user["id"])
+            db.wipe_device()
             time.sleep(1)
             run_uninstall_script()
         else:
