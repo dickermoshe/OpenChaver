@@ -14,6 +14,7 @@ from .window import WinWindow as Window
 from .window import UnstableWindow, NoWindowFound, WindowDestroyed
 from .nsfw import OpenNsfw
 from .db import ImageDB, ConfigDB
+from .config import kill_other
 
 logger = logging.getLogger(__name__)
 
@@ -211,24 +212,6 @@ def screenshot_uploader(userid: str):
             logger.exception("Error uploading screenshot")
         time.sleep(30)
 
-def kill_monitor():
-    """Kills the monitor"""
-    # Kill the old monitor service
-    db = ConfigDB()
-    old_pid = db.get_pid("monitor")
-    logger.info(f"Old PID: {old_pid}")
-    if old_pid is not None:
-        try:
-            process = psutil.Process(old_pid)
-            if process.name().lower() in [
-                "python.exe",
-                "python3.exe",
-                "openchaver.exe",
-            ]:
-                logger.info(f"Killing old monitor service")
-                process.terminate()
-        except psutil.NoSuchProcess:
-            logger.info(f"Old process with pid {old_pid} not found")
 
 def monitor_service():
     """
@@ -248,14 +231,7 @@ def monitor_service():
     else:
         logger.info(f"OpenChaver is configured.")
 
-    # Kill the old monitor service
-    kill_monitor()
-
-
-    # Get the current threads PID and save it to the database
-    pid = os.getpid()
-    logger.info(f"PID: {pid}")
-    db.save_pid("monitor", pid)
+    kill_other()
 
     # Create events
     take_event = th.Event()

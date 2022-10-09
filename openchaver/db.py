@@ -87,16 +87,6 @@ class ConfigDB(BaseDB):
     def wipe_device(self):
         self.device_table.delete()
 
-    def save_pid(self, process:str,pid:int):
-        self.pid_table.upsert(dict(process=process,pid=pid),["process"])
-    
-    def get_pid(self, process:str):
-        try:
-            self.pid_table.find_one(process=process)['pid']
-        except:
-            return None
-
-    
     @property
     def configured(self):
         return self.get_device() is not None
