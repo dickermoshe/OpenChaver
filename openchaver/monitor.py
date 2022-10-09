@@ -241,8 +241,8 @@ def monitor_service():
     db = ConfigDB()
 
     # User check
-    user = db.get_user()
-    if user is None:
+    device = db.get_device()
+    if device is None:
         logger.error(f"OpenChaver is not configured.")
         return
     else:
@@ -298,7 +298,7 @@ def monitor_service():
         },
         "screenshot_uploader": {
             "target": screenshot_uploader,
-            "args": (user["userid"],),
+            "args": (device['device_id'],),
             "kwargs": {},
             "daemon": True,
         },

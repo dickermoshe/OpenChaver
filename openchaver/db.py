@@ -91,7 +91,11 @@ class ConfigDB(BaseDB):
         self.pid_table.upsert(dict(process=process,pid=pid),["process"])
     
     def get_pid(self, process:str):
-        return self.pid_table.find_one(process=process)['pid']
+        try:
+            self.pid_table.find_one(process=process)['pid']
+        except:
+            return None
+
     
     @property
     def configured(self):
