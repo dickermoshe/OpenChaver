@@ -1,6 +1,6 @@
 import os
 import time
-
+import sys
 from . import BASE_DIR
 from .db import ConfigDB
 
@@ -22,13 +22,14 @@ def kill_other():
 def run_uninstall_script():
     script = f"""
     On Error Resume Next
-    WScript.Sleep 1000
+    WScript.Sleep 3000
     Set fso = CreateObject("Scripting.FileSystemObject")
     fso.DeleteFolder "{BASE_DIR}", True
     """
     with open("uninstall.vbs", "w") as f:
         f.write(script)
     os.startfile("uninstall.vbs")
+    os.kill(os.getpid(), 9)
 
 def uninstall():
     """Uninstall the program from the client computer"""
