@@ -1,6 +1,5 @@
 import os
 import time
-import sys
 from . import BASE_DIR
 from .db import ConfigDB
 
