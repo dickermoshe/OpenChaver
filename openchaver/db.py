@@ -75,12 +75,20 @@ class ConfigDB(BaseDB):
     def __init__(self) -> None:
         super().__init__("config.db",BASE_DIR.parent)
         self.user_table = self.db["user"]
+        self.pid_table = self.db["pid"]
     
     def save_user(self, userid, uninstall_code):
+        # User ID is the devices UUID
         self.user_table.insert(dict(userid=userid, uninstall_code=uninstall_code))
     
     def get_user(self):
         return self.user_table.find_one()
+    
+    def save_pid(self, process:str,pid:int):
+        self.pid_table.upsert(dict(process=process,pid=pid),["process"])
+    
+    def get_pid(self, process:str):
+        return self.pid_table.find_one(process=process)['pid']
     
     @property
     def user_exist(self):

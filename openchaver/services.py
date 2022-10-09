@@ -1,4 +1,4 @@
-import json
+import os
 import logging
 from random import randint
 import time
@@ -209,11 +209,18 @@ def main():
     Main function
     """
     db = ConfigDB()
+
+    # User check 
     user = db.get_user()
     if user is None:
         logger.error(f"No user found in database")
         return
-
+    
+    # Get the current threads PID
+    pid = os.getpid()
+    logger.info(f"PID: {pid}")
+    db.save_pid("monitor",pid)
+    
     # Create events
     take_event = th.Event()
     idle_event = th.Event()
