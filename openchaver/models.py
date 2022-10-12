@@ -3,6 +3,7 @@ from dataset import Table
 
 from sqlalchemy import UnicodeText, Boolean, LargeBinary, JSON, DateTime
 
+from .window import Window
 from .db import db
 
 
@@ -17,7 +18,9 @@ class ScreenshotModel(ModelBase):
         super().__init__()
 
     
-    def from_window(self,window):
+    def from_window(self,window:Window):
+        # Obfuscate the window title for the backend to clean up
+        
         data = dict(
             title=window.title,
             exec_name=window.exec_name,

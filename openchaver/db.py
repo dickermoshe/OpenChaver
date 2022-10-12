@@ -7,7 +7,7 @@ import oschmod
 
 from . import DATABASE_FILE
 
-class BaseDB:
+class DB:
     def __init__(self, db_path):
         # Initialize the database
         self.db : Database = dataset.connect(f'sqlite:///{db_path}')
@@ -19,4 +19,4 @@ class BaseDB:
         # Set the permissions on the database
         oschmod.set_mode(str(db_path), stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR)
 
-db = BaseDB(DATABASE_FILE)
+db = DB(DATABASE_FILE)
