@@ -184,3 +184,9 @@ _utils/
 
 # VSCode
 .vscode/
+
+# Build files
+*.build/
+
+# Dist files
+*.dist/
