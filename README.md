@@ -1,12 +1,12 @@
 # OpenChaver
 ```
 # Run the services
-python launcher.py
+python openchaver.py
 
 OR
 
 # Build an Executable
-python -m nuitka .\launcher.py --standalone --enable-plugin=numpy --include-data-dir="C:\Users\Moshe Dicker\Documents\DickerSystems\OpenChaver\openchaver\nsfw_model"=nsfw_model
+python -m nuitka .\openchaver.py --standalone --onefile --enable-plugin=numpy --include-data-dir="C:\Users\Moshe Dicker\Documents\DickerSystems\OpenChaver\openchaver\nsfw_model"=nsfw_model
 ```
 
 

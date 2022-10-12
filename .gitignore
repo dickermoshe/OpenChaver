@@ -190,3 +190,6 @@ _utils/
 
 # Dist files
 *.dist/
+
+# onefile-build
+*.onefile-build/
