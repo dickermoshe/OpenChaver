@@ -1,4 +1,5 @@
-# OpenChaver
+# OpenChaver  
+
 ```
 # Run the services
 python openchaver.py
@@ -6,10 +7,8 @@ python openchaver.py
 OR
 
 # Build an Executable
-python -m nuitka .\openchaver.py --standalone --onefile --enable-plugin=numpy --include-data-dir="C:\Users\Moshe Dicker\Documents\DickerSystems\OpenChaver\openchaver\nsfw_model"=nsfw_model
+python -m nuitka .\openchaver.py --standalone --onefile --enable-plugin=numpy --include-data-dir=`"${pwd}\openchaver\nsfw_model`"=nsfw_model
 ```
-
-
 
 The working services are:
 - [x] `scheduler` - Sends events to the `screenshot` service.
