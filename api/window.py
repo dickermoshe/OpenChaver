@@ -1,26 +1,17 @@
-# Imports
 import logging
-import ctypes
-import time
+import os
 
-import win32ui
-import win32process as wproc
-import cv2 as cv
-import psutil
 import numpy as np
+import cv2 as cv
 import mss
-
 
 from .image_utils.skin_detector import contains_skin
 from .image_utils.deblot import deblot
 from .image_utils.obfuscate import blur, pixelate
 from .profanity import is_profane
 
-
 # Logger
 logger = logging.getLogger(__name__)
-
-
 
 
 # Exceptions
@@ -29,7 +20,6 @@ class NoWindowFound(Exception):
         self.message = message
         self.current_title = title
         super().__init__(self.message)
-
     pass
 
 
@@ -38,57 +28,18 @@ class UnstableWindow(Exception):
         self.message = message
         self.current_title = title
         super().__init__(self.message)
-
     pass
 
 
 class WindowDestroyed(Exception):
     """Window has been destroyed"""
-
     pass
 
-
-# Windows OS Window class
-class WinWindow:
-    DEFAULT_DPI = 96
-    user32 = ctypes.windll.user32
-
-    def __init__(self, hwnd):
-        self.hwnd = hwnd
-        self.nsfw = False
-
-        # Get the window title and check for profanity
-        try:
-            self.title = self.hwnd.GetWindowText()
-            self.profane = is_profane(self.title)
-        except:
-            logger.exception("Unable to get window title")
-            self.title = "Unknown Title"
-            self.profane = False
-
-        # Get the window process ID and executable path
-        try:
-            self.pid = wproc.GetWindowThreadProcessId(
-                self.hwnd.GetSafeHwnd())[1]
-            self.exec_name = psutil.Process(self.pid).name()
-        except:
-            logger.exception("Unable to get window pid | exec_name")
-            self.pid = -1
-            self.exec_name = "Unknown Executable"
-
-        # Get the window DPI
-        try:
-            self.dpi = self.user32.GetDpiForWindow(self.hwnd.GetSafeHwnd())
-        except:
-            logger.exception(
-                f"Unable to get window DPI - defaulting to {self.DEFAULT_DPI}")
-            self.dpi = self.DEFAULT_DPI
-
-        logger.debug(f"Window Title: {self.title}")
-        logger.debug(f"Window Profane: {self.profane}")
-        logger.debug(f"Window PID: {self.pid}")
-        logger.debug(f"Window Executable: {self.exec_name}")
-        logger.debug(f"Window DPI: {self.dpi}")
+class WindowBase:
+    def __init__(self) -> None:
+        self.nsfw_detections = None
+        self.is_nsfw = False
+        self.obfuscated = False
 
     def __str__(self):
         return self.title
@@ -96,51 +47,13 @@ class WinWindow:
     def __repr__(self):
         return self.title
 
-    def __getstate__(self):  # This allows the object to be pickled
-        state = self.__dict__.copy()
-        del state["hwnd"]
-        return state
-
-    def __setstate__(self, state):  # This allows the object to be pickled
-        self.__dict__.update(state)
-        self.hwnd = None
-
-
-    def get_coordinates(self):
-        """Get the coordinates of the window"""
-
-        # The following code is used to calculate the coordinates of
-        # the window with the border monitor pixels removed
-        try:
-            client_rect = self.hwnd.GetClientRect()
-            logger.debug(f"Client rect: {client_rect}")
-
-            window_rect = self.hwnd.GetWindowRect()
-            logger.debug(f"Window rect: {window_rect}")
-            client_width = client_rect[2] - client_rect[0]
-            window_width = window_rect[2] - window_rect[0]
-            border = (window_width - client_width) // 2
-
-            coordinates = (
-                window_rect[0] + border,
-                window_rect[1] + border,
-                window_rect[2] - border,
-                window_rect[3] - border,
-            )
-            logger.debug(f"Calculated coordinates: {coordinates}")
-
-            return coordinates
-        except:
-            logger.exception("Unable to get window coordinates")
-            raise WindowDestroyed
-
     def obfuscate(self):
         """
-        Return pixelated image
-
+        Save self.image as a pixelated image
         """
         self.image = pixelate(self.image)
-        
+        self.obfuscated = True
+
     def take_screenshot(self):
         """Get a screenshot of the window"""
 
@@ -159,48 +72,18 @@ class WinWindow:
             image = cv.resize(image, None, fx=scale, fy=scale)
 
         self.image = image
-
+    
     def stable_check(self) -> None:
         """Check if the window is stable"""
         try:
-            window_2 = WinWindow.get_active_window()
+            window_2 = self.__class__.get_active_window()
             if window_2.title != self.title:
                 raise UnstableWindow(window_2.title)
         except UnstableWindow:
             raise
         except:
             raise UnstableWindow
-
-    @classmethod
-    def get_active_window(cls, invalid_title: str | None = None,stable: bool|int = False):
-        """Get the active window"""
-        try:
-            # Get the active window
-            hwnd = win32ui.GetForegroundWindow()
-            window = cls(hwnd)
-
-            # Check for an invalid title
-            if window.title == invalid_title:
-                raise NoWindowFound(window.title)
-            logger.debug(f"Active window: {window.title}")
-
-            
-            # Check if the window is stable
-            for _ in range(int(stable)):
-                window.stable_check()
-                time.sleep(1)
-            
-            return window
-        
-        except UnstableWindow:
-            raise
-        except NoWindowFound:
-            raise
-        except:
-            raise NoWindowFound
-
-
-
+    
     def run_detection(
         self,
         opennsfw=None,
@@ -279,10 +162,141 @@ class WinWindow:
                 logger.debug("OpenNSFW detected NSFW image")
                 # Run NudeNet on the images
                 nudenet = nudenet if nudenet is not None else NudeNet()
-                if nudenet.is_nsfw(i):
-                    logger.debug("NudeNet detected NSFW image")
-                    self.nsfw = True
+                nudenet_results = nudenet.is_nsfw(i)
+                if nudenet_results['is_nsfw']:
                     logger.debug("NSFW image detected")
+                    self.is_nsfw = True
+                    self.nsfw_detections = nudenet_results
                     return
                 else:
                     logger.debug("NudeNet did not detect NSFW image")
+    
+    @property
+    def as_bytes(self) -> bytes:
+        """Get the CV2 image as bytes of PNG"""
+        if not self.obfuscated:
+            self.obfuscate()
+        _, buffer = cv.imencode('.png', self.image)
+        return buffer.tobytes()
+        
+
+if os.name == "nt":
+    import ctypes
+    import time
+
+    import win32ui
+    import win32process as wproc
+    import psutil
+
+    class Window(WindowBase):
+        DEFAULT_DPI = 96
+        user32 = ctypes.windll.user32
+        def __init__(self, hwnd):
+            super().__init__()
+
+            self.hwnd = hwnd
+
+            # Get the window title and check for profanity
+            try:
+                self.title = self.hwnd.GetWindowText()
+                self.profane = is_profane(self.title)
+            except:
+                logger.exception("Unable to get window title")
+                self.title = "Unknown Title"
+                self.profane = False
+
+            # Get the window process ID and executable path
+            try:
+                self.pid = wproc.GetWindowThreadProcessId(
+                    self.hwnd.GetSafeHwnd())[1]
+                self.exec_name = psutil.Process(self.pid).name()
+            except:
+                logger.exception("Unable to get window pid | exec_name")
+                self.pid = -1
+                self.exec_name = "Unknown Executable"
+
+            # Get the window DPI
+            try:
+                self.dpi = self.user32.GetDpiForWindow(self.hwnd.GetSafeHwnd())
+            except:
+                logger.exception(
+                    f"Unable to get window DPI - defaulting to {self.DEFAULT_DPI}")
+                self.dpi = self.DEFAULT_DPI
+
+            logger.debug(f"Window Title: {self.title}")
+            logger.debug(f"Window Profane: {self.profane}")
+            logger.debug(f"Window PID: {self.pid}")
+            logger.debug(f"Window Executable: {self.exec_name}")
+            logger.debug(f"Window DPI: {self.dpi}")
+
+        def __getstate__(self):  # This allows the object to be pickled
+            state = self.__dict__.copy()
+            del state["hwnd"]
+            return state
+
+        def __setstate__(self, state):  # This allows the object to be pickled
+            self.__dict__.update(state)
+            self.hwnd = None
+
+
+        def get_coordinates(self):
+            """Get the coordinates of the window"""
+
+            # The following code is used to calculate the coordinates of
+            # the window with the border monitor pixels removed
+            try:
+                client_rect = self.hwnd.GetClientRect()
+                logger.debug(f"Client rect: {client_rect}")
+
+                window_rect = self.hwnd.GetWindowRect()
+                logger.debug(f"Window rect: {window_rect}")
+                client_width = client_rect[2] - client_rect[0]
+                window_width = window_rect[2] - window_rect[0]
+                border = (window_width - client_width) // 2
+
+                coordinates = (
+                    window_rect[0] + border,
+                    window_rect[1] + border,
+                    window_rect[2] - border,
+                    window_rect[3] - border,
+                )
+                logger.debug(f"Calculated coordinates: {coordinates}")
+
+                return coordinates
+            except:
+                logger.exception("Unable to get window coordinates")
+                raise WindowDestroyed
+            
+
+        @classmethod
+        def get_active_window(cls, invalid_title: str | None = None,stable: bool|int = False):
+            """Get the active window"""
+            try:
+                # Get the active window
+                hwnd = win32ui.GetForegroundWindow()
+                window = cls(hwnd)
+
+                # Check for an invalid title
+                if window.title == invalid_title:
+                    raise NoWindowFound(window.title)
+                logger.debug(f"Active window: {window.title}")
+
+                
+                # Check if the window is stable
+                for _ in range(int(stable)):
+                    window.stable_check()
+                    time.sleep(1)
+                
+                return window
+            
+            except UnstableWindow:
+                raise
+            except NoWindowFound:
+                raise
+            except:
+                raise NoWindowFound
+
+else:
+    print("Unsupported OS")
+    exit(1)
+
