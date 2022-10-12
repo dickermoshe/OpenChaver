@@ -13,6 +13,7 @@ mss==6.1.0
 numpy==1.23.3
 onnxruntime==1.12.1
 opencv-python==4.6.0.66
+oschmod==0.3.12
 packaging==21.3
 Pillow==9.2.0
 protobuf==4.21.7

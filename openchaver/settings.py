@@ -12,6 +12,10 @@ https://docs.djangoproject.com/en/4.1/ref/settings/
 
 from pathlib import Path
 import os
+import stat
+import oschmod
+
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 API_URL = 'https://api.openchaver.com'
@@ -26,11 +30,12 @@ if os.name == 'nt':
     if not DATABASE_FILE.exists():
         DATABASE_FILE.touch()
     
-    # 
 else:
     print('Unsupported OS')
     exit(1)
 
+# Set the permissions
+oschmod.set_mode_recursive(str(INSTALL_DIR), stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR)
 
 SECRET_KEY = "Due to the nature of this project, this key is not secret"
 
