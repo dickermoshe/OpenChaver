@@ -8,7 +8,7 @@ from django.conf import settings
 
 from .image_utils.resize import *
 
-MODEL_PATH = settings.BASE_DIR / "api" / "nsfw_model"
+MODEL_PATH = settings.BASE_DIR / "nsfw_model"
 
 # Logging
 logger = logging.getLogger(__name__)
