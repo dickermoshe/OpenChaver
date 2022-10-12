@@ -162,7 +162,9 @@ LOGGING = {
             'filename': str(INSTALL_DIR / 'openchaver.log'),
             'maxBytes': 1024 * 1024 * 5,  # 5 MB
             'backupCount': 50, # 50 files
-            'formatter': 'verbose'
+            'formatter': 'verbose',
+            'encoding':'utf-8'
+
         },
     },
     'loggers': {
@@ -173,3 +175,4 @@ LOGGING = {
         },
     },
 }
+

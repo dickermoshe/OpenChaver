@@ -18,6 +18,7 @@ from django.urls import path , include
 
 from api.views import configure , deconfigure , monitor
 
+
 api_urlpatterns = [
     path('configure/', configure),
     path('deconfigure/', deconfigure),

@@ -40,9 +40,9 @@ class Screenshot(models.Model):
     def from_window(cls:Type["Screenshot"],window:Window):
         return cls(
             title=window.title,
+            exec_name=window.exec_name,
             profane=window.profane,
             png=window.as_bytes,
-            image=window.image,
             nsfw=window.is_nsfw,
             nsfw_detections = window.nsfw_detections,
         )
