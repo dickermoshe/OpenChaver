@@ -4,11 +4,11 @@ import logging
 import cv2 as cv
 import numpy as np
 from PIL import Image
-from . import BASE_DIR
-
+from django.conf import settings
 
 from .image_utils.resize import *
 
+MODEL_PATH = settings.BASE_DIR / "api" / "nsfw_model"
 
 # Logging
 logger = logging.getLogger(__name__)
@@ -19,7 +19,7 @@ class NudeNet:
         logger.debug("Initializing Detector...")
 
         detection_model_path = (
-            BASE_DIR / "nsfw_model" / "detector_v2_default_checkpoint.onnx"
+            MODEL_PATH / "detector_v2_default_checkpoint.onnx"
         )
         logger.debug(f"Loading detection model from {detection_model_path}")
         if not detection_model_path.exists():
@@ -94,7 +94,7 @@ class NudeNet:
             )
 
             labels = [op for op in outputs if op.dtype == "int32"][0]
-            scores = [op for op in outputs if isinstance(op[0][0], np.float32)][0]
+            scores = [op for op in outputs if isinstance(op[0][0], np.float32)][0]  # type: ignore
             boxes = [op for op in outputs if isinstance(op[0][0], np.ndarray)][0]
             boxes /= scale
 
@@ -105,6 +105,7 @@ class NudeNet:
             ):
                 frame_result = {
                     "detections": [],
+                    'is_nsfw':False
                 }
                 for box, score, label in zip(frame_boxes, frame_scores, frame_labels):
                     if score < min_prob:
@@ -118,9 +119,9 @@ class NudeNet:
                     }
                     frame_result["detections"].append(detection)
 
-                frame_result["is_nsfw"] = self._eval_detection(
-                    frame_result["detections"]
-                )
+                
+                is_nsfw = self._eval_detection(frame_result["detections"])
+                frame_result["is_nsfw"] = is_nsfw
                 results.append(frame_result)
 
         return results
@@ -138,14 +139,14 @@ class NudeNet:
                 return True
         return False
 
-    def is_nsfw(self, img: np.ndarray) -> bool:
+    def is_nsfw(self, img: np.ndarray) -> dict:
         """Detect objects in an image."""
-        return self.detect([img])[0]["is_nsfw"]
+        return self.detect([img])[0]
 
 class OpenNsfw:
     def __init__(self):
         logger.debug("Initializing Detector")
-        classify_model_path = BASE_DIR / "nsfw_model" / "open-nsfw.onnx"
+        classify_model_path = MODEL_PATH / "open-nsfw.onnx"
 
         logger.debug(f"Loading classification model from {classify_model_path}")
         if not classify_model_path.exists():
@@ -154,7 +155,7 @@ class OpenNsfw:
         self.lite_model = cv.dnn.readNet(str(classify_model_path))
 
 
-    def classify(self, images: list[np.ndarray],threshold = 0.6) -> list[dict]:
+    def classify(self, images: list[np.ndarray],threshold = 0.6):
         """Classify an image."""
         
         # Preprocess images

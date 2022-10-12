@@ -950,7 +950,6 @@ word_list = [
 ]
 
 def is_profane(s:str):
-    # Entire Word
     if re.compile(r"\b" + r"\b|".join(word_list)+r"\b",re.IGNORECASE,).search(s):
         return True
     else:
