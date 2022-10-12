@@ -182,3 +182,5 @@ LOGGING = {
     },
 }
 
+REST_FRAMEWORK = {
+}
