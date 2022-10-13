@@ -32,7 +32,6 @@ def uploader():
             
             # Set the device_id
             data['device_id'] = ConfigurationModel().device_id
-            print(data)
             
             try:
                 r = requests.post(f"{API_BASE_URL}screenshots/add_screenshot/",json=data)

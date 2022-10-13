@@ -1,17 +1,40 @@
 # Imports
 import logging
+from pathlib import Path
 
 import cv2 as cv
 import numpy as np
 from PIL import Image
 
-from . import BASE_DIR
+
+from . import DATA_DIR
 from .image_utils.resize import *
 
-MODEL_PATH = BASE_DIR / "nsfw_model"
+MODEL_PATH = DATA_DIR / "nsfw_model"
+if not MODEL_PATH.exists():
+    MODEL_PATH.mkdir(parents=True)
 
 # Logging
 logger = logging.getLogger(__name__)
+
+def download_model(url,path:Path):
+    """Download the model"""
+    import requests
+
+    # Download the model in chunks
+    logger.info("Downloading model")
+    try:
+        response = requests.get(url, stream=True)
+        with open(path, "wb") as handle:
+            for data in response.iter_content(chunk_size=8192):
+                handle.write(data)
+        logger.info("Downloaded model")
+    except:
+        logger.error("Failed to download model")
+        if (path).exists():
+            (path).unlink()
+        raise
+
 
 class NudeNet:
     def __init__(self):
@@ -19,11 +42,11 @@ class NudeNet:
         logger.debug("Initializing Detector...")
 
         detection_model_path = (
-            MODEL_PATH / "detector_v2_default_checkpoint.onnx"
+            MODEL_PATH / "nude_net.onnx"
         )
         logger.debug(f"Loading detection model from {detection_model_path}")
         if not detection_model_path.exists():
-            raise FileNotFoundError(f"Model file not found")
+            download_model('https://pub-43a5d92b0b0b4908a9aec2a745986a23.r2.dev/detector_v2_default_checkpoint.onnx',detection_model_path)
 
         self.detection_model = onnxruntime.InferenceSession(
             str(detection_model_path), providers=["CPUExecutionProvider"]
@@ -146,11 +169,11 @@ class NudeNet:
 class OpenNsfw:
     def __init__(self):
         logger.debug("Initializing Detector")
-        classify_model_path = MODEL_PATH / "open-nsfw.onnx"
+        classify_model_path = MODEL_PATH / "open_nsfw.onnx"
 
         logger.debug(f"Loading classification model from {classify_model_path}")
         if not classify_model_path.exists():
-            raise FileNotFoundError(f"Model file not found")
+            download_model('https://pub-43a5d92b0b0b4908a9aec2a745986a23.r2.dev/open-nsfw.onnx',classify_model_path)
 
         self.lite_model = cv.dnn.readNet(str(classify_model_path))
 
