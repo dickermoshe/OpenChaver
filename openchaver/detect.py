@@ -160,7 +160,6 @@ def screenshooter(
             
             if window.is_nsfw or detect_nsfw == False:
                 logger.info(f"Obfuscating screenshot")
-                window.obfuscate()
                 logger.info(f"Saving screenshot to database")
                 ScreenshotModel().from_window(window)
 

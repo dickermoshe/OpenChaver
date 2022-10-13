@@ -7,6 +7,7 @@ def pixelate(img, scale =.2,max_width_return = 512):
     image = cv.resize(img, (0, 0), fx=scale, fy=scale)
     image = cv.resize(image, (max_width_return, int(image.shape[0] * max_width_return / image.shape[1])))
     return image
+
 def blur(img):
     """
     Blur image to hide innapropriate content.
@@ -15,3 +16,20 @@ def blur(img):
     low_blur = cv.blur(img, (5, 5))
     high_blur = cv.blur(img, (9, 9))
     return low_blur, high_blur
+
+def obfuscate_image(image: np.ndarray) -> bytes:
+    """
+    Obfuscate an image to hide innapropriate content.
+
+    """
+    # Pixelate
+    image = pixelate(image)
+    
+    # Reverse the image
+    image = cv.bitwise_not(image)
+
+    # Return the image as png bytes
+    return cv.imencode(".png", image)[1].tobytes()
+
+
+    

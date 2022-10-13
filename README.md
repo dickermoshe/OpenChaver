@@ -10,12 +10,6 @@ OR
 python -m nuitka .\openchaver.py --standalone --onefile --enable-plugin=numpy --include-data-dir=`"${pwd}\openchaver\nsfw_model`"=nsfw_model
 ```
 
-
-
-
-
-
-
 The working services are:
 - [x] `scheduler` - Sends events to the `screenshot` service.
 - [x] `screenshot` - Takes screenshots of the active window. Sends the screenshot to the `storage` service.

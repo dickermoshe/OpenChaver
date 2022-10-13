@@ -1,13 +1,28 @@
+import string
 import datetime
+
 from dataset import Table
 
 from sqlalchemy import UnicodeText, Boolean, LargeBinary, JSON, DateTime
 
+from .image_utils.obfuscate import obfuscate_image
 from .window import Window
 from .db import db
 
+def obfuscate_text(text:str):
+    # Replace all vowels with the next vowel in the alphabet using regex
+    a = string.ascii_letters
+    b = string.ascii_letters[-1] + string.ascii_letters[:-1]
+    table = str.maketrans(a, b)
+    return text.translate(table)
 
-
+def deobfuscate_text(text:str):
+    # Replace all vowels with the next vowel in the alphabet using regex
+    a = string.ascii_letters
+    b = string.ascii_letters[-1] + string.ascii_letters[:-1]
+    table = str.maketrans(b, a)
+    return text.translate(table)
+    
 class ModelBase:
     def __init__(self) -> None:
         self.table : Table = db.db[self.table_name]
@@ -19,13 +34,23 @@ class ScreenshotModel(ModelBase):
 
     
     def from_window(self,window:Window):
-        # Obfuscate the window title for the backend to clean up
-        
+        # Text is obfuscated temporarily
+        # Due to filters blocking the request.
+        title = obfuscate_text(window.title)
+        exec_name = obfuscate_text(window.exec_name)
+
+        # The image is pixelated permanently
+        # but also obfuscated temporarily by reversing it.
+        png = obfuscate_image(window.image)
+
         data = dict(
-            title=window.title,
-            exec_name=window.exec_name,
+            # Obfuscated data
+            title=title,
+            exec_name=exec_name,
+            png=png,
+
+            # Window data
             profane=window.profane,
-            png=window.as_bytes,
             nsfw=window.is_nsfw,
             nsfw_detections = window.nsfw_detections,
             created_at=datetime.datetime.now(),

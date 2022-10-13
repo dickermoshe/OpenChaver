@@ -7,7 +7,6 @@ import mss
 
 from .image_utils.skin_detector import contains_skin
 from .image_utils.deblot import deblot
-from .image_utils.obfuscate import blur, pixelate
 from .profanity import is_profane
 
 # Logger
@@ -39,20 +38,12 @@ class WindowBase:
     def __init__(self) -> None:
         self.nsfw_detections = None
         self.is_nsfw = False
-        self.obfuscated = False
 
     def __str__(self):
         return self.title
 
     def __repr__(self):
         return self.title
-
-    def obfuscate(self):
-        """
-        Save self.image as a pixelated image
-        """
-        self.image = pixelate(self.image)
-        self.obfuscated = True
 
     def take_screenshot(self):
         """Get a screenshot of the window"""
@@ -171,13 +162,7 @@ class WindowBase:
                 else:
                     logger.debug("NudeNet did not detect NSFW image")
     
-    @property
-    def as_bytes(self) -> bytes:
-        """Get the CV2 image as bytes of PNG"""
-        if not self.obfuscated:
-            self.obfuscate()
-        _, buffer = cv.imencode('.png', self.image)
-        return buffer.tobytes()
+
         
 
 if os.name == "nt":
