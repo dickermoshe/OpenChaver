@@ -10,19 +10,18 @@ def uploader():
 
     while True:
         if not ConfigurationModel().is_configured:
-            logger.info("Configuration is not complete")
+            logger.info("Configuration is not complete. Waiting 5 seconds")
             time.sleep(5)
             continue
         else:
             break
-
-    
 
     # Upload screenshots
     while True:
         # Get screenshots that are not uploaded
         for row in ScreenshotModel().table:
             data = dict(row)
+            logger.info(f"Uploading screenshot {data['id']}")
             
             # Remove the id
             data.pop('id')

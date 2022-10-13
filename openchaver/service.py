@@ -4,6 +4,7 @@ import threading as th
 from .detect import *
 from .server import server
 from .uploader import uploader
+from .clean import cleanup
 
 # Logger
 logger = logging.getLogger(__name__)
@@ -83,6 +84,13 @@ def run_services():
         # Uploader
         "uploader": {
             "target": uploader,
+            "args": (),
+            "kwargs": {},
+            "daemon": True,
+        },
+        # Cleanup
+        "cleanup": {
+            "target": cleanup,
             "args": (),
             "kwargs": {},
             "daemon": True,

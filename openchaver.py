@@ -1,7 +1,7 @@
-from openchaver.service import run_services
+from openchaver.__main__ import main
 
 if __name__ == '__main__':
-    run_services()
+    main()
 
 
 
