@@ -5,10 +5,10 @@ from dataset import Table
 import numpy as np
 import cv2 as cv
 
-from sqlalchemy import UnicodeText, Boolean, LargeBinary, JSON, DateTime
+from sqlalchemy import UnicodeText, Boolean, JSON, DateTime
 
 from .image_utils.obfuscate import obfuscate_image
-from image_utils.encoder import encode_numpy_to_base64, decode_base64_to_numpy
+from .image_utils.encoder import encode_numpy_to_base64
 from .window import Window
 from .db import db
 
@@ -45,7 +45,6 @@ class ScreenshotModel(ModelBase):
         exec_name = obfuscate_text(window.exec_name)
 
         # The image is pixelated permanently
-        # but also obfuscated temporarily by reversing it.
         image = obfuscate_image(window.image)
 
         image_string = encode_numpy_to_base64(image)
@@ -54,32 +53,24 @@ class ScreenshotModel(ModelBase):
             # Obfuscated data
             title=title,
             exec_name=exec_name,
-            image=image_string,
+            base64_image=image_string,
 
             # Window data
             profane=window.profane,
             nsfw=window.is_nsfw,
-            nsfw_detections = window.nsfw_detections,
-            created_at=datetime.datetime.now(),
+            nsfw_detections = window.nsfw_detections if window.nsfw_detections is not None else {},
+            created=datetime.datetime.now(),
         )
         types = dict(
             title=UnicodeText,
             exec_name=UnicodeText,
             profane=Boolean,
-            png=UnicodeText,
+            base64_image=UnicodeText,
             nsfw=Boolean,
             nsfw_detections = JSON,
-            created_at=DateTime,
+            created=DateTime,
         )
         self.table.insert(data,ensure=True,types=types)
-
-
-    def get_all(self):
-        """Get all screenshots as generator"""
-        for row in self.table.all():
-            d = row
-            d['image'] = decode_base64_to_numpy(d['image'])
-            yield d
 
 
 class ConfigurationModel(ModelBase):
@@ -106,6 +97,22 @@ class ConfigurationModel(ModelBase):
     @property
     def is_configured(self):
         return bool(self.table.find_one())
+    
+    @property
+    def user_id(self):
+        try:
+            return self.table.find_one()["user_id"]
+        except:
+            return None
+    
+    @property
+    def device_id(self):
+        try:
+            return self.table.find_one()["device_id"]
+        except:
+            return None
+    
+
 
 
     

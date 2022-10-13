@@ -3,6 +3,7 @@ import threading as th
 
 from .detect import *
 from .server import server
+from .uploader import uploader
 
 # Logger
 logger = logging.getLogger(__name__)
@@ -69,12 +70,19 @@ def run_services():
                 reporting_take_event,
                 idle_event,
             ),
+            "kwargs": dict(detect_nsfw=False),
+            "daemon": True,
+        },
+        # Server
+        "server": {
+            "target": server,
+            "args": (),
             "kwargs": {},
             "daemon": True,
         },
-        # Take screenshots for reporting
-        "server": {
-            "target": server,
+        # Uploader
+        "uploader": {
+            "target": uploader,
             "args": (),
             "kwargs": {},
             "daemon": True,

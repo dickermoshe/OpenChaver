@@ -6,9 +6,9 @@ def encode_numpy_to_base64(img: np.ndarray) -> str:
     """
     Encode a numpy array to base64.
     """
-    return base64.b64encode(cv2.imencode('.jpg', img)[1]).decode()
+    return base64.b64encode(cv2.imencode('.png', img)[1]).decode()
 
-def decode_base64_to_numpy(img: str) -> np.ndarray:
+def decode_base64_to_numpy(str: str) -> np.ndarray:
     """
     Decode a base64 string to a numpy array.
     """

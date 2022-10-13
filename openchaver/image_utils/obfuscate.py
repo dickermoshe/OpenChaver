@@ -24,9 +24,6 @@ def obfuscate_image(image: np.ndarray) -> bytes:
     """
     # Pixelate
     image = pixelate(image)
-    
-    # Reverse the image
-    image = cv.bitwise_not(image)
 
     return image
 
