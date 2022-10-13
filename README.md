@@ -8,6 +8,9 @@ OR
 
 # Build an Executable
 python -m nuitka .\openchaver.py --standalone --onefile --enable-plugin=numpy
+OR
+pyinstaller --onefile -n openchaver --uac-admin openchaver.py
+
 ```
 
 The working services are:

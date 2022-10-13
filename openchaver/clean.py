@@ -1,6 +1,6 @@
 def cleanup():
     """Delete ScreenshotModel older than a week"""
-    from models import ScreenshotModel
+    from .models import ScreenshotModel
     from time import sleep
     from datetime import datetime, timedelta
     while True:
