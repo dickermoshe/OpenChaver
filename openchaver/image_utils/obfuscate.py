@@ -28,8 +28,7 @@ def obfuscate_image(image: np.ndarray) -> bytes:
     # Reverse the image
     image = cv.bitwise_not(image)
 
-    # Return the image as png bytes
-    return cv.imencode(".png", image)[1].tobytes()
+    return image
 
 
     
