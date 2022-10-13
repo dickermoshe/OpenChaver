@@ -126,7 +126,7 @@ class NudeNet:
 
         return results
 
-    def _eval_detection(self, result, threshold=0.5) -> bool:
+    def _eval_detection(self, result, threshold=0.6) -> bool:
         nsfw_labels = [
             "EXPOSED_ANUS",
             "EXPOSED_BUTTOCKS",
