@@ -92,5 +92,4 @@ class ConfigurationModel(ModelBase):
         return bool(self.table.find_one())
 
 
-
     
