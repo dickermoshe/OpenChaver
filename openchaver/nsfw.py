@@ -1,11 +1,12 @@
 # Imports
 import logging
 from pathlib import Path
+import stat
 
 import cv2 as cv
 import numpy as np
 from PIL import Image
-
+import oschmod
 
 from . import DATA_DIR
 from .image_utils.resize import *
@@ -28,6 +29,7 @@ def download_model(url,path:Path):
         with open(path, "wb") as handle:
             for data in response.iter_content(chunk_size=8192):
                 handle.write(data)
+        oschmod.set_mode(str(path), stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR)
         logger.info("Downloaded model")
     except:
         logger.error("Failed to download model")

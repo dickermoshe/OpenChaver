@@ -10,21 +10,17 @@ OR
 python -m nuitka .\openchaver.py --standalone --onefile --enable-plugin=numpy
 OR
 pyinstaller --onefile -n openchaver --uac-admin openchaver.py
-
 ```
 
-The working services are:
+TODO:
 - [x] `scheduler` - Sends events to the `screenshot` service.
 - [x] `screenshot` - Takes screenshots of the active window. Sends the screenshot to the `storage` service.
 - [x] `storage` - Stores the screenshots in the `sqlite` database.
 - [x] Add a `idle` service that will pause the `screenshot` service if the user is idle.
 - [x] ~~Add a `keystroke` service that will send events to the `screenshot` service if NSFW text is detected.~~ (Window Defender treats this as a virus. Any workarounds will be unstable.)
-
-
-TODO:
 - [ ] Create the uninstallation script that will uninstall the application.
-- [ ] Create the configuration script that will configure the application.
-- [ ] Add a `upload` service to upload the screenshots to the remote server.
+- [x] ~~Create the configuration script that will configure the application.~~ (Done by Website)
+- [x] Add a `upload` service to upload the screenshots to the remote server.
 - [ ] Create the remote backend server that will send reports and alerts to the chaver. -> [openchaver-server](https://github.com/dickermoshe/OpenChaver-Server)
 - [ ] Create the installation script that will install the application.
 - [ ] Create the update script that will update the application.

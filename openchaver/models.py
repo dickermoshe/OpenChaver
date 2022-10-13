@@ -2,8 +2,7 @@ import string
 import datetime
 
 from dataset import Table
-import numpy as np
-import cv2 as cv
+
 
 from sqlalchemy import UnicodeText, Boolean, JSON, DateTime
 
