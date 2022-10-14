@@ -28,27 +28,36 @@ Section "Installer"
 
     # Copy all the contents of ./openchaver.dist to the install directory
     File /r "build\openchaver.dist\"
+    File /r "bin\"
 
     # define uninstaller name
     WriteUninstaller $INSTDIR\uninstaller.exe
 
-    SimpleSC::InstallService "openchaver" "OpenChaver" 16 2 "$INSTDIR\openchaver.exe"
-    SimpleSC::StartService "openchaver"
- 
+    # Run NSSM to install the OpenChaver service
+    ExecWait '"$INSTDIR\nssm.exe" install OpenChaver "$INSTDIR\openchaver.exe"'
+    
+    # Run NSSM to set the OpenChaver service to start automatically
+    ExecWait '"$INSTDIR\nssm.exe" set OpenChaver Start SERVICE_AUTO_START'
+
+    # Run NSSM to start the OpenChaver service
+    ExecWait '"$INSTDIR\nssm.exe" start OpenChaver'
+
+
 # default section end
 SectionEnd
-
 
 #  Uninstaller Section
 Section "Uninstall"
 
-SimpleSC::StopService "openchaver"
-SimpleSC::RemoveService "openchaver"
+    # Run NSSM to stop the OpenChaver service
+    ExecWait '"$INSTDIR\nssm.exe" stop OpenChaver'
 
-# Delete all files from inside $INSTDIR
-Delete $INSTDIR\*
- 
-# Delete the directory
-RMDir $INSTDIR
+    # Run NSSM to remove the OpenChaver service
+    ExecWait '"$INSTDIR\nssm.exe" remove OpenChaver confirm'
+
+
+    # Delete all files from inside $INSTDIR recursively
+    RMDir /r $INSTDIR
+    
 
 SectionEnd
