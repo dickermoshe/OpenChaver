@@ -5,9 +5,7 @@ import numpy as np
 import cv2 as cv
 import mss
 
-from .image_utils.skin_detector import contains_skin
-from .image_utils.deblot import deblot
-from .profanity import is_profane
+from .utils import is_profane, deblot_image, contains_skin
 
 # Logger
 logger = logging.getLogger(__name__)
@@ -80,7 +78,8 @@ class WindowBase:
         opennsfw=None,
         nudenet=None,
     ):
-        from .nsfw import NudeNet, OpenNsfw
+        from .nudenet import NudeNet
+        from .opennsfw import OpenNsfw
 
 
         # Get the image
@@ -117,7 +116,7 @@ class WindowBase:
 
         # Deblot the mask
         min_size = (0.0025 * mask.shape[0] * mask.shape[1])
-        mask = deblot(mask, min_size=min_size)
+        mask = deblot_image(mask, min_size=min_size)
 
         # Morphological operations on the mask
         mask = cv.morphologyEx(mask, cv.MORPH_CLOSE, kernel, iterations=1)

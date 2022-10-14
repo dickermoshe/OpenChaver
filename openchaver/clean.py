@@ -1,10 +1,10 @@
 def cleanup():
-    """Delete ScreenshotModel older than a week"""
-    from .models import ScreenshotModel
+    """Delete Screenshots older than a week"""
+    from .db import ScreenshotDB
     from time import sleep
-    from datetime import datetime, timedelta
+    from datetime import datetime
     while True:
-        for row in ScreenshotModel().table:
+        for row in ScreenshotDB().table:
             if (datetime.now() - row['created']).days > 7:
-                ScreenshotModel().table.delete(id=row['id'])
+                ScreenshotDB().table.delete(id=row['id'])
         sleep(3600)

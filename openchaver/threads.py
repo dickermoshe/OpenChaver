@@ -7,8 +7,8 @@ from mss import ScreenShotError
 from pynput import mouse
 
 from .window import Window, NoWindowFound, UnstableWindow,WindowDestroyed
-from .nsfw import OpenNsfw
-from .models import ScreenshotModel, ConfigurationModel
+from .opennsfw import OpenNsfw
+from .db import ScreenshotDB , ConfigurationDB
 
 
 
@@ -121,7 +121,7 @@ def screenshooter(
     logger.debug(f"Interval: {interval}")
     logger.debug(f"Detect: {detect_nsfw}")
     while True:
-        if not ConfigurationModel().is_configured:
+        if not ConfigurationDB().is_configured:
             logger.info("Configuration is not complete")
             time.sleep(5)
             continue
@@ -161,7 +161,7 @@ def screenshooter(
             if window.is_nsfw or detect_nsfw == False:
                 logger.info(f"Obfuscating screenshot")
                 logger.info(f"Saving screenshot to database")
-                ScreenshotModel().from_window(window)
+                ScreenshotDB().save_window(window)
 
             del window
             time.sleep(interval)

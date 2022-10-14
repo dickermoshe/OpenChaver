@@ -1,5 +1,46 @@
-import re
-word_list = [
+import os
+from pathlib import Path
+
+from .utils import is_frozen
+
+
+BASE_URL = "https://openchaver.com/"
+API_BASE_URL = "https://api.openchaver.com/"
+DETECTION_MODEL_URL = 'https://pub-43a5d92b0b0b4908a9aec2a745986a23.r2.dev/detector_v2_default_checkpoint.onnx'
+CLASSIFICATION_MODEL_URL = 'https://pub-43a5d92b0b0b4908a9aec2a745986a23.r2.dev/open-nsfw.onnx'
+TESTING = not is_frozen() # Is testing if not frozen
+
+
+
+if os.name == 'nt':
+
+    LOCAL_DATA_DIR = Path(__file__).parent.parent / 'local_data'
+    
+    if TESTING:
+        SYSTEM_DATA_DIR = Path(__file__).parent.parent / 'system_data'
+    else:
+        SYSTEM_DATA_DIR = Path(os.path.expandvars('%ProgramData%')) / 'OpenChaver'
+
+    LOG_FILE = SYSTEM_DATA_DIR / 'openchaver.log'
+    MODEL_PATH = SYSTEM_DATA_DIR / "nsfw_model"
+    
+    # Create data dir if not exists
+    if not LOCAL_DATA_DIR.exists():
+        LOCAL_DATA_DIR.mkdir()
+    
+    # Create system data dir if not exists
+    if not SYSTEM_DATA_DIR.exists():
+        SYSTEM_DATA_DIR.mkdir()
+    
+    # Create Model dir if not exists
+    if not MODEL_PATH.exists():
+        MODEL_PATH.mkdir()
+
+else:
+    print('Unsupported OS')
+    exit(1)
+
+BAD_WORDS = [
     "2 girls 1 cup",
     "2g1c",
     "4r5e",
@@ -948,9 +989,3 @@ word_list = [
     "yiffy",
     "zoophilia",
 ]
-
-def is_profane(s:str):
-    if re.compile(r"\b" + r"\b|".join(word_list)+r"\b",re.IGNORECASE,).search(s):
-        return True
-    else:
-        return False

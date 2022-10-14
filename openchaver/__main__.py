@@ -1,4 +1,4 @@
-from .service import run_services
+from .services import run_services
 
 def main():
     run_services()

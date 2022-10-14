@@ -2,14 +2,14 @@ def uploader():
     import logging
     import requests
     import time
-    from .models import ScreenshotModel,ConfigurationModel
-    from . import API_BASE_URL
+    from .db import ScreenshotDB,ConfigurationDB
+    from .const import API_BASE_URL
 
     # Logger
     logger = logging.getLogger(__name__)
 
     while True:
-        if not ConfigurationModel().is_configured:
+        if not ConfigurationDB().is_configured:
             logger.info("Configuration is not complete. Waiting 5 seconds")
             time.sleep(5)
             continue
@@ -19,7 +19,7 @@ def uploader():
     # Upload screenshots
     while True:
         # Get screenshots that are not uploaded
-        for row in ScreenshotModel().table:
+        for row in ScreenshotDB().table:
             data = dict(row)
             logger.info(f"Uploading screenshot {data['id']}")
             
@@ -30,12 +30,12 @@ def uploader():
             data['created'] = data['created'].isoformat()
             
             # Set the device_id
-            data['device_id'] = ConfigurationModel().device_id
+            data['device_id'] = ConfigurationDB().device_id
             
             try:
                 r = requests.post(f"{API_BASE_URL}screenshots/add_screenshot/",json=data,verify=False)
                 if r.status_code == 200:
-                    ScreenshotModel().table.delete(id=row['id'])
+                    ScreenshotDB().table.delete(id=row['id'])
                     logger.info(f"Uploaded screenshot {row['id']}")
                 else:
                     print(r.status_code)

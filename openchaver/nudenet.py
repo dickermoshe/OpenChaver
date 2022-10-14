@@ -1,54 +1,22 @@
-# Imports
 import logging
-from pathlib import Path
-import stat
 
-import cv2 as cv
 import numpy as np
 from PIL import Image
-import oschmod
 
-from . import DATA_DIR
-from .image_utils.resize import *
+from .const import MODEL_PATH, DETECTION_MODEL_URL
+from .utils import download_file, match_size, resize_image
 
-MODEL_PATH = DATA_DIR / "nsfw_model"
-if not MODEL_PATH.exists():
-    MODEL_PATH.mkdir(parents=True)
-
-# Logging
 logger = logging.getLogger(__name__)
-
-def download_model(url,path:Path):
-    """Download the model"""
-    import requests
-
-    # Download the model in chunks
-    logger.info("Downloading model")
-    try:
-        response = requests.get(url, stream=True,verify=False)
-        with open(path, "wb") as handle:
-            for data in response.iter_content(chunk_size=8192):
-                handle.write(data)
-        oschmod.set_mode(str(path), stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR)
-        logger.info("Downloaded model")
-    except:
-        logger.error("Failed to download model")
-        if (path).exists():
-            (path).unlink()
-        raise
-
 
 class NudeNet:
     def __init__(self):
         import onnxruntime
-        logger.debug("Initializing Detector...")
-
-        detection_model_path = (
-            MODEL_PATH / "nude_net.onnx"
-        )
+        detection_model_path = MODEL_PATH / "nude_net.onnx"
         logger.debug(f"Loading detection model from {detection_model_path}")
+
         if not detection_model_path.exists():
-            download_model('https://pub-43a5d92b0b0b4908a9aec2a745986a23.r2.dev/detector_v2_default_checkpoint.onnx',detection_model_path)
+            logger.debug(f"Downloading detection model from {DETECTION_MODEL_URL}")
+            download_file(DETECTION_MODEL_URL,detection_model_path)
 
         self.detection_model = onnxruntime.InferenceSession(
             str(detection_model_path), providers=["CPUExecutionProvider"]
@@ -167,52 +135,3 @@ class NudeNet:
     def is_nsfw(self, img: np.ndarray) -> dict:
         """Detect objects in an image."""
         return self.detect([img])[0]
-
-class OpenNsfw:
-    def __init__(self):
-        logger.debug("Initializing Detector")
-        classify_model_path = MODEL_PATH / "open_nsfw.onnx"
-
-        logger.debug(f"Loading classification model from {classify_model_path}")
-        if not classify_model_path.exists():
-            download_model('https://pub-43a5d92b0b0b4908a9aec2a745986a23.r2.dev/open-nsfw.onnx',classify_model_path)
-
-        self.lite_model = cv.dnn.readNet(str(classify_model_path))
-
-
-    def classify(self, images: list[np.ndarray],threshold = 0.6):
-        """Classify an image."""
-        
-        # Preprocess images
-        # Copied from
-        # https://pypi.org/project/opennsfw-standalone/
-        preprocessed_images = []
-        for image in images:
-
-            image = cv.resize(image, (224, 224), interpolation=cv.INTER_LINEAR)
-
-            image_jpeg_data = image.astype(np.float32, copy=False)
-
-            image_jpeg_data -= np.array([104, 117, 123], dtype=np.float32)
-
-            image_jpeg_data = np.expand_dims(image_jpeg_data, axis=0)
-
-            preprocessed_images.append(image_jpeg_data)
-
-
-        # Run model
-        for image in preprocessed_images:
-            self.lite_model.setInput(image)
-            result = self.lite_model.forward()
-            yield result[0][1] > threshold
-
-    
-    def is_nsfw(self, image: np.ndarray, threshold=0.6) -> bool:
-        """Classify an image."""
-        return next(self.classify([image], threshold))
-
-
-
-            
-        
-

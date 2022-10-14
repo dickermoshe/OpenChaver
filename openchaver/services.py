@@ -1,7 +1,7 @@
 import logging
 import threading as th
 
-from .detect import *
+from .threads import *
 from .server import server
 from .uploader import uploader
 from .clean import cleanup

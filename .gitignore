@@ -192,3 +192,4 @@ _utils/
 *.onefile-build/
 
 temp_data/
+system_data/
