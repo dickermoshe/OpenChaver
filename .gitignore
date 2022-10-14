@@ -193,5 +193,3 @@ _utils/
 
 # onefile-build
 *.onefile-build/
-
-*.exe
