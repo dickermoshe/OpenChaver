@@ -194,5 +194,4 @@ _utils/
 # onefile-build
 *.onefile-build/
 
-*.iss
 *.exe
