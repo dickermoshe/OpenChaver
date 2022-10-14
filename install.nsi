@@ -1,5 +1,5 @@
 # set the name of the installer
-!define VERSION "0.1.5"
+!define VERSION "0.1.6"
 Name "OpenChaver ${VERSION}"
 Outfile "Installer.exe"
  
