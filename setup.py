@@ -5,7 +5,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setup(
     name="openchaver_client",
-    version='0.1.2',
+    version='0.1.3',
     author="Moshe Dicker",
     author_email='mail@openchaver.com',
     description="An open source alternative to WebChaver.",
