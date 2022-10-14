@@ -27,7 +27,7 @@ Section "Installer"
     SetOutPath $INSTDIR
 
     # Copy all the contents of ./openchaver.dist to the install directory
-    File /r "build\"
+    File /r "build\openchaver.dist\"
 
     # define uninstaller name
     WriteUninstaller $INSTDIR\uninstaller.exe
