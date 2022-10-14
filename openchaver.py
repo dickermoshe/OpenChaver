@@ -8,6 +8,9 @@ if os.name == 'nt':
         import win32serviceutil  # ServiceFramework and commandline helper
         import win32service  # Events
         import servicemanager
+        import win32timezone
+        import threading
+
         
         class MyService:
             """Silly little application stub"""
@@ -18,9 +21,21 @@ if os.name == 'nt':
             def run(self):
                 """Main service loop. This is where work is done!"""
                 self.running = True
+
+                # Start the service on a new thread
+                die_event = threading.Event()
+                t = threading.Thread(target=openchaver_main,args=(die_event),daemon=True)
+                t.start()
+
                 while self.running:
-                    time.sleep(10)  # Important work
+                    time.sleep(5)
                     servicemanager.LogInfoMsg("Service running...")
+                
+                die_event.set()
+                t.join()
+
+
+
 
 
         class MyServiceFramework(win32serviceutil.ServiceFramework):

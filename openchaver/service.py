@@ -10,7 +10,7 @@ from .clean import cleanup
 logger = logging.getLogger(__name__)
 
 
-def run_services():
+def run_services(die_event: th.Event|None = None):
     """
     Run all services
     """
@@ -124,5 +124,9 @@ def run_services():
                     daemon=SERVICES[k]["daemon"],
                 )
                 SERVICES[k]["thread"].start()
+        
+        if die_event and die_event.is_set():
+            break
+
         time.sleep(5)
 
