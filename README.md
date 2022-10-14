@@ -7,7 +7,7 @@ python openchaver.py
 OR
 
 # Build an Executable
-python -m nuitka .\openchaver.py --standalone --enable-plugin=numpy
+python -m nuitka .\openchaver.py --standalone --output-dir=build --enable-plugin=numpy
 ```
 
 TODO:

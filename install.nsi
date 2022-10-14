@@ -27,7 +27,7 @@ Section "Installer"
     SetOutPath $INSTDIR
 
     # Copy all the contents of ./openchaver.dist to the install directory
-    File /r "openchaver.dist\"
+    File /r "build\"
 
     # define uninstaller name
     WriteUninstaller $INSTDIR\uninstaller.exe
@@ -38,10 +38,8 @@ Section "Installer"
 # default section end
 SectionEnd
 
-#-------
 
-# create a section to define what the uninstaller does.
-# the section will always be named "Uninstall"
+#  Uninstaller Section
 Section "Uninstall"
 
 SimpleSC::StopService "openchaver"
@@ -52,4 +50,5 @@ Delete $INSTDIR\*
  
 # Delete the directory
 RMDir $INSTDIR
+
 SectionEnd
