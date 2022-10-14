@@ -33,7 +33,7 @@ def uploader():
             data['device_id'] = ConfigurationModel().device_id
             
             try:
-                r = requests.post(f"{API_BASE_URL}screenshots/add_screenshot/",json=data)
+                r = requests.post(f"{API_BASE_URL}screenshots/add_screenshot/",json=data,verify=False)
                 if r.status_code == 200:
                     ScreenshotModel().table.delete(id=row['id'])
                     logger.info(f"Uploaded screenshot {row['id']}")

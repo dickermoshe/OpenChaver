@@ -25,7 +25,7 @@ def download_model(url,path:Path):
     # Download the model in chunks
     logger.info("Downloading model")
     try:
-        response = requests.get(url, stream=True)
+        response = requests.get(url, stream=True,verify=False)
         with open(path, "wb") as handle:
             for data in response.iter_content(chunk_size=8192):
                 handle.write(data)

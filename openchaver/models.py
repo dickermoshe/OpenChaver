@@ -77,13 +77,11 @@ class ConfigurationModel(ModelBase):
         self.table_name = self.__class__.__name__.lower()
         super().__init__()
 
-    def set(self,user_id,device_id):
+    def set(self,device_id):
         data = dict(
-            user_id=user_id,
             device_id=device_id,
         )
         types = dict(
-            user_id=UnicodeText,
             device_id=UnicodeText,
         )
 
@@ -96,13 +94,6 @@ class ConfigurationModel(ModelBase):
     @property
     def is_configured(self):
         return bool(self.table.find_one())
-    
-    @property
-    def user_id(self):
-        try:
-            return self.table.find_one()["user_id"]
-        except:
-            return None
     
     @property
     def device_id(self):
