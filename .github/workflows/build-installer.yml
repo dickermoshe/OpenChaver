@@ -1,0 +1,47 @@
+name: Build Installer
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  deploy:
+
+    runs-on: windows-latest
+
+    steps:
+    - uses: actions/checkout@v3
+    
+    - uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
+        architecture: 'x64'
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install nuitka
+
+    # Build python script into a stand-alone exe
+    - uses: Nuitka/Nuitka-Action@v0.4
+      with:
+        script-name: openchaver.py
+        standalone: true
+        enable-plugins: numpy
+    
+    - name: Create installer
+      uses: joncloud/makensis-action@v3.7
+
+    # Upload the exe as a release asset
+    - uses: svenstaro/upload-release-action@v2
+      with:
+        repo_token: ${{ secrets.GITHUB_TOKEN }}
+        file: Installer.exe
+        asset_name: OpenChaver64.exe
+        tag: ${{ github.ref }}
+        overwrite: true
+    
+
+     
+
+    

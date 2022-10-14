@@ -8,8 +8,6 @@ OR
 
 # Build an Executable
 python -m nuitka .\openchaver.py --standalone --enable-plugin=numpy
-OR
-pyinstaller --onefile -n openchaver --uac-admin openchaver.py
 ```
 
 TODO:
