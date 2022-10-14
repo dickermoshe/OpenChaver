@@ -8,13 +8,18 @@ BASE_URL = "https://openchaver.com/"
 API_BASE_URL = "https://api.openchaver.com/"
 
 
-if not sys.executable.endswith(('python', 'python3','python.exe','python3.exe')):
-    BASE_DIR = Path(sys.executable).parent
+if sys.executable.endswith(('python', 'python3','python.exe','python3.exe')):
+    TESTING = True
 else:
-    BASE_DIR = Path(__file__).parent
+    TESTING = False
 
 if os.name == 'nt':
-    DATA_DIR = Path(os.path.expandvars('%ProgramData%')) / 'OpenChaver'
+
+    if TESTING:
+        DATA_DIR = Path(__file__).parent.parent / 'temp_data'
+    else:
+        DATA_DIR = Path(os.path.expandvars('%ProgramData%')) / 'OpenChaver'
+
     DATABASE_FILE = DATA_DIR / 'db.sqlite3'
     LOG_FILE = DATA_DIR / 'openchaver.log'
     if not DATA_DIR.exists():

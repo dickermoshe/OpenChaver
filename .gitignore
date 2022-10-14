@@ -190,3 +190,5 @@ _utils/
 
 # onefile-build
 *.onefile-build/
+
+temp_data/
