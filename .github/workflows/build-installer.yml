@@ -33,8 +33,6 @@ jobs:
     
     - name: Create installer
       uses: joncloud/makensis-action@v3.7
-      with:
-        additional-plugin-paths: ${{ github.workspace }}/NSIS_Plugins
 
     # Upload the exe as a release asset
     - uses: svenstaro/upload-release-action@v2
