@@ -15,8 +15,10 @@ itsdangerous==2.1.2
 Jinja2==3.1.2
 Mako==1.2.3
 MarkupSafe==2.1.1
+marshmallow==3.18.0
 mpmath==1.2.1
 mss==6.1.0
+Nuitka==1.1.5
 numpy==1.23.4
 onnxruntime==1.12.1
 opencv-python==4.6.0.66
@@ -28,6 +30,7 @@ psutil==5.9.2
 pynput==1.7.6
 pyparsing==3.0.9
 pyreadline3==3.4.1
+PySimpleGUI==4.60.4
 pywin32==304
 requests==2.28.1
 six==1.16.0

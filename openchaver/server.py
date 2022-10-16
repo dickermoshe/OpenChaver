@@ -9,8 +9,8 @@ def server():
     
     from flask import Flask, jsonify, request
     from marshmallow import Schema, fields
-    import requests
-    from .const import API_BASE_URL, LOCAL_SERVER_PORT
+    from .const import LOCAL_SERVER_PORT
+    from .api import api    
 
     app = Flask(__name__)
 
@@ -24,19 +24,18 @@ def server():
         errors = ConfigureRequest().validate(data)
         if errors:
             return jsonify(errors), 400
-        try:
-            r = requests.post(f"{API_BASE_URL}devices/register_device/",json=data,verify=False)
-            if r.status_code != 200:
-                raise Exception("Failed to register device")
-        except:
-            return jsonify({"error": "Failed to register device"}), 500
-
         
-        success = configdb.save_device_id(data['device_id'])
+        device_id = data['device_id']
 
-        if success:
-            return jsonify({'success': True})
+        # Check if device exists
+        status = api(f'devices/{device_id}/register_device/')
+        if not status:
+            return jsonify({'error': 'Device does not exist'}), 400
         else:
-            jsonify({"error": "Current device already configured."}), 500
-    
+            success = configdb.save_device_id(data['device_id'])
+            if success:
+                return jsonify({'success': True})
+            else:
+                return jsonify({"error": "Current device already configured."}), 400
+
     app.run(port=LOCAL_SERVER_PORT)
