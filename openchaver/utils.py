@@ -217,28 +217,31 @@ def contains_skin(img: np.ndarray, thresh=1.5) -> bool:
     logger.debug(f"Skin ratio: {skin_ratio}")
     return skin_ratio > thresh
 
-def get_cursor():
-    """Get the cursor"""
+
+
+def get_current_time():
+    """Return the current time as a string"""
     import os
-    if os.name == "nt":
+    if os.name == 'nt':
         import win32api
         try:
-            x , y = win32api.GetCursorPos()
-            return x * y
+            return win32api.GetTickCount() / 1000
         except:
             return 0
-        
-def has_cursor_moved(old_position: int | None = None) -> bool:
-    """Get the cursor position"""
+
+def get_time_of_last_input()->int:
+    """Return the time of the last user input"""
     import os
-    if os.name == "nt":
+    if os.name == 'nt':
+        import win32api
+        try:
+            return win32api.GetLastInputInfo() / 1000
+        except:
+            return 0
 
-        new_position = get_cursor()
-
-        if old_position == new_position:
-            return False, old_position
-        else:
-            return True, new_position
+def get_idle_time()->int:
+    """Return the time the user has been idle"""
+    return get_current_time() - get_time_of_last_input()
 
 
 

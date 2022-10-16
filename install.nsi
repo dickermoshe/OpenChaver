@@ -1,5 +1,5 @@
 # set the name of the installer
-!define VERSION "0.3.1"
+!define VERSION "0.4.0"
 Name "OpenChaver ${VERSION}"
 Outfile "Installer.exe"
  
@@ -33,28 +33,12 @@ Section "Installer"
     # define uninstaller name
     WriteUninstaller $INSTDIR\uninstaller.exe
 
-    # Run NSSM to install the OpenChaver service
-    ExecWait '"$INSTDIR\nssm.exe" install OpenChaver "$INSTDIR\openchaver.exe" "services"'
-    
-    # Run NSSM to set the OpenChaver service to start automatically
-    ExecWait '"$INSTDIR\nssm.exe" set OpenChaver Start SERVICE_AUTO_START'
-
-    # Run NSSM to start the OpenChaver service
-    ExecWait '"$INSTDIR\nssm.exe" start OpenChaver'
-
 
 # default section end
 SectionEnd
 
 #  Uninstaller Section
 Section "Uninstall"
-
-    # Run NSSM to stop the OpenChaver service
-    ExecWait '"$INSTDIR\nssm.exe" stop OpenChaver'
-
-    # Run NSSM to remove the OpenChaver service
-    ExecWait '"$INSTDIR\nssm.exe" remove OpenChaver confirm'
-
 
     # Delete all files from inside $INSTDIR recursively
     RMDir /r $INSTDIR

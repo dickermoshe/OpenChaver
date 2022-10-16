@@ -4,11 +4,10 @@ import time
 import threading as th
 
 from mss import ScreenShotError
-from pynput import mouse
 
 from .window import Window, NoWindowFound, UnstableWindow,WindowDestroyed
 from .opennsfw import OpenNsfw
-from .utils import has_cursor_moved
+from .utils import get_idle_time
 
 # Logger
 logger = logging.getLogger(__name__)
@@ -20,20 +19,16 @@ def idle_detection(idle_event: th.Event, interval: int = 60, reset_interval: int
     If so, it will send an event to the screenshot service to stop taking screenshots.
     Every `reset_interval` seconds reset the idle timer
     """
-    position = 0
     last_active = time.time()
-
     while True:
-        moved , position = has_cursor_moved(position)
-
-        if moved or time.time() - last_active > reset_interval:
-            last_active = time.time()
-            idle_event.clear()
-            logger.info(f"User is active")
-        else:
+        if get_idle_time() > interval and time.time() - last_active < reset_interval:
             idle_event.set()
             logger.info(f"User is idle")
-        
+        else:
+            idle_event.clear()
+            logger.info(f"User is active")
+            last_active = time.time()
+
         time.sleep(interval)
         
             
