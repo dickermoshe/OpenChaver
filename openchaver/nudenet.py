@@ -3,7 +3,7 @@ import logging
 import numpy as np
 from PIL import Image
 
-from .const import MODEL_PATH, DETECTION_MODEL_URL
+from .const import MODEL_PATH, DETECTION_MODEL_URL, DETECTION_MODEL_SHA256_HASH
 from .utils import download_file, match_size, resize_image
 
 logger = logging.getLogger(__name__)
@@ -14,9 +14,9 @@ class NudeNet:
         detection_model_path = MODEL_PATH / "nude_net.onnx"
         logger.debug(f"Loading detection model from {detection_model_path}")
 
-        if not detection_model_path.exists():
+        if not detection_model_path.exists() :
             logger.debug(f"Downloading detection model from {DETECTION_MODEL_URL}")
-            download_file(DETECTION_MODEL_URL,detection_model_path)
+            download_file(DETECTION_MODEL_URL,detection_model_path,DETECTION_MODEL_SHA256_HASH)
 
         self.detection_model = onnxruntime.InferenceSession(
             str(detection_model_path), providers=["CPUExecutionProvider"]

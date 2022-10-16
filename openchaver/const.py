@@ -7,10 +7,11 @@ from .utils import is_frozen
 BASE_URL = "https://openchaver.com/"
 API_BASE_URL = "https://api.openchaver.com/"
 DETECTION_MODEL_URL = 'https://pub-43a5d92b0b0b4908a9aec2a745986a23.r2.dev/detector_v2_default_checkpoint.onnx'
+DETECTION_MODEL_SHA256_HASH = "D4BE1C504BE61851D9745E6DA8FA09455EB39B8856626DD6B5CA413C9E8B1578" 
 CLASSIFICATION_MODEL_URL = 'https://pub-43a5d92b0b0b4908a9aec2a745986a23.r2.dev/open-nsfw.onnx'
+CLASSIFICATION_MODEL_SHA256_HASH = "864BB37BF8863564B87EB330AB8C785A79A773F4E7C43CB96DB52ED8611305FA"
+
 TESTING = not is_frozen() # Is testing if not frozen
-
-
 
 if os.name == 'nt':
 

@@ -110,6 +110,10 @@ def run_services(die_event: th.Event|None = None):
     for k in SERVICES.keys():
         SERVICES[k]["thread"].start()
 
+    # Print threads ids
+    for k in SERVICES.keys():
+        logger.info(f"{k}: {SERVICES[k]['thread'].ident}")
+
     # Loop -> Restart threads if they die and sleep for 5 seconds
     while True:
         for k in SERVICES.keys():

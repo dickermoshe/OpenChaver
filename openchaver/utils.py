@@ -3,6 +3,17 @@ from pathlib import Path
 import numpy as np
 logger = logging.getLogger(__name__)
 
+def chech_hash(path:Path,hash:str) -> bool:
+    """Check the hash of a file"""
+    import hashlib
+    if not path.exists():
+        return False
+    with open(path, "rb") as f:
+        file_hash = hashlib.sha256()
+        while chunk := f.read(8192):
+            file_hash.update(chunk)
+    return file_hash.hexdigest().upper() == hash
+
 def is_frozen():
     """Check if the program is frozen by PyInstaller or Nuitka"""
     import sys
@@ -60,7 +71,7 @@ def decode_base64_to_numpy(str: str) -> np.ndarray:
     import base64
     return cv.imdecode(np.frombuffer(base64.b64decode(str), np.uint8), -1)
 
-def download_file(url,path:Path):
+def download_file(url,path:Path,hash=None):
     """Download the model"""
     import requests
 
@@ -71,12 +82,18 @@ def download_file(url,path:Path):
         with open(path, "wb") as handle:
             for data in response.iter_content(chunk_size=8192):
                 handle.write(data)
+
+        # Check the hash
+        logger.info("Checking hash...")
+        if hash:
+            if not chech_hash(path,hash):
+                raise Exception("Hash does not match")
+        
         chmod(path)
         logger.info("Model downloaded")
     except:
         logger.error("Failed to download model")
-        if (path).exists():
-            (path).unlink()
+        path.unlink(missing_ok=True)
         raise
 
 def compute_resize_scale(image_shape, min_side=800, max_side=1333):

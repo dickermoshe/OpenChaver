@@ -8,9 +8,6 @@ from pynput import mouse
 
 from .window import Window, NoWindowFound, UnstableWindow,WindowDestroyed
 from .opennsfw import OpenNsfw
-from .db import ScreenshotDB , ConfigurationDB
-
-
 
 # Logger
 logger = logging.getLogger(__name__)
@@ -115,24 +112,32 @@ def screenshooter(
     If `detect_nsfw` is True, it will also detect NSFW content in the screenshot.
     It will wait `interval` seconds between each screenshot
     """
+    from .db import get_configuration_db , get_screenshot_db
 
     
     logger.info(f"Starting Screenshooter Service")
     logger.debug(f"Interval: {interval}")
     logger.debug(f"Detect: {detect_nsfw}")
+
+    logger.info(f"Connecting to Database")
+    
+    config_db = get_configuration_db()
+    screenshot_db = get_screenshot_db()
+
     while True:
-        if not ConfigurationDB().is_configured:
+        if not config_db.is_configured:
             logger.info("Configuration is not complete")
             time.sleep(5)
             continue
         else:
             break
-    
+
     if detect_nsfw:
         opennsfw = OpenNsfw()
     else:
         opennsfw = None
-    
+
+
     while True:
 
         # Wait fot take event to be set, and the user to not be idle
@@ -156,12 +161,12 @@ def screenshooter(
 
             if detect_nsfw:
                 logger.info(f"Running NSFW detection")
-                window.run_detection(opennsfw=opennsfw) #
+                window.run_detection(opennsfw=opennsfw)
             
             if window.is_nsfw or detect_nsfw == False:
                 logger.info(f"Obfuscating screenshot")
                 logger.info(f"Saving screenshot to database")
-                ScreenshotDB().save_window(window)
+                screenshot_db.save_window(window)
 
             del window
             time.sleep(interval)

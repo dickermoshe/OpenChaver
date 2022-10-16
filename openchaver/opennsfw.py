@@ -3,7 +3,7 @@ import logging
 import numpy as np
 import cv2 as cv
 
-from .const import MODEL_PATH, CLASSIFICATION_MODEL_URL
+from .const import MODEL_PATH, CLASSIFICATION_MODEL_URL , CLASSIFICATION_MODEL_SHA256_HASH
 from .utils import download_file
 
 logger = logging.getLogger(__name__)
@@ -11,11 +11,13 @@ logger = logging.getLogger(__name__)
 class OpenNsfw:
     def __init__(self):
         classify_model_path = MODEL_PATH / "open_nsfw.onnx"
-        logger.debug(f"Loading classification model from {classify_model_path}")
+        logger.info(f"Loading classification model from {classify_model_path}")
 
         if not classify_model_path.exists():
-            logger.debug(f"Downloading classification model from {CLASSIFICATION_MODEL_URL}")
-            download_file(CLASSIFICATION_MODEL_URL,classify_model_path)
+            logger.info(f"Downloading classification model from {CLASSIFICATION_MODEL_URL}")
+            download_file(CLASSIFICATION_MODEL_URL,classify_model_path,CLASSIFICATION_MODEL_SHA256_HASH)
+        else:
+            logger.info(f"Classification model already exists at {classify_model_path}")
 
         self.lite_model = cv.dnn.readNet(str(classify_model_path))
 

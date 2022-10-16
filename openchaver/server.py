@@ -1,4 +1,12 @@
 def server():
+    import time
+    from .db import get_configuration_db
+
+    configdb = get_configuration_db()
+    if configdb.is_configured:
+        time.sleep(60)
+        return
+    
     from flask import Flask, jsonify, request
     from marshmallow import Schema, fields
     import requests
@@ -8,7 +16,7 @@ def server():
 
     class ConfigureRequest(Schema):
         device_id = fields.UUID(required=True)
-
+    
     @app.route('/configure', methods=['POST'])
     def configure():
         data = request.get_json()
@@ -23,11 +31,12 @@ def server():
         except:
             return jsonify({"error": "Failed to register device"}), 500
 
-        from .db import ConfigurationDB
-        success = ConfigurationDB().save_device_id(data['device_id'])
+        
+        success = configdb.save_device_id(data['device_id'])
 
         if success:
             return jsonify({'success': True})
         else:
             jsonify({"error": "Current device already configured."}), 500
+    
     app.run()
