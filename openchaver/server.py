@@ -10,7 +10,7 @@ def server():
     from flask import Flask, jsonify, request
     from marshmallow import Schema, fields
     import requests
-    from .const import API_BASE_URL
+    from .const import API_BASE_URL, LOCAL_SERVER_PORT
 
     app = Flask(__name__)
 
@@ -39,4 +39,4 @@ def server():
         else:
             jsonify({"error": "Current device already configured."}), 500
     
-    app.run()
+    app.run(port=LOCAL_SERVER_PORT)
