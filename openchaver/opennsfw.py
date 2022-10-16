@@ -19,7 +19,12 @@ class OpenNsfw:
         else:
             logger.info(f"Classification model already exists at {classify_model_path}")
 
-        self.lite_model = cv.dnn.readNet(str(classify_model_path))
+        try:
+            self.lite_model = cv.dnn.readNet(str(classify_model_path))
+        except Exception as e:
+            logger.exception("Failed to load classification model")
+            classify_model_path.unlink(missing_ok=True)
+            raise e
 
 
     def classify(self, images: list[np.ndarray],threshold = 0.6):

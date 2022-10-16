@@ -34,7 +34,7 @@ Section "Installer"
     WriteUninstaller $INSTDIR\uninstaller.exe
 
     # Run NSSM to install the OpenChaver service
-    ExecWait '"$INSTDIR\nssm.exe" install OpenChaver "$INSTDIR\openchaver.exe"'
+    ExecWait '"$INSTDIR\nssm.exe" install OpenChaver "$INSTDIR\openchaver.exe" "services"'
     
     # Run NSSM to set the OpenChaver service to start automatically
     ExecWait '"$INSTDIR\nssm.exe" set OpenChaver Start SERVICE_AUTO_START'

@@ -6,8 +6,9 @@ def cli():
 
 @cli.command()
 def gui():
-    from .gui import run_gui
-    run_gui()
+    pass
+    #from .gui import run_gui
+    #run_gui()
 
 
 @cli.command()

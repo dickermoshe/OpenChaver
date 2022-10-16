@@ -8,6 +8,7 @@ from pynput import mouse
 
 from .window import Window, NoWindowFound, UnstableWindow,WindowDestroyed
 from .opennsfw import OpenNsfw
+from .utils import has_cursor_moved
 
 # Logger
 logger = logging.getLogger(__name__)
@@ -19,27 +20,24 @@ def idle_detection(idle_event: th.Event, interval: int = 60, reset_interval: int
     If so, it will send an event to the screenshot service to stop taking screenshots.
     Every `reset_interval` seconds reset the idle timer
     """
+    position = 0
+    last_active = time.time()
 
     while True:
+        moved , position = has_cursor_moved(position)
 
-        last_active = time.time()  # The last time the user was active
-
-        # Reset `idle_event` if `reset_interval` seconds have passed since the last time the user was active
-        if time.time() - last_active > reset_interval:
-            logger.info(f"Resetting idle timer")
+        if moved or time.time() - last_active > reset_interval:
+            last_active = time.time()
             idle_event.clear()
+            logger.info(f"User is active")
+        else:
+            idle_event.set()
+            logger.info(f"User is idle")
+        
+        time.sleep(interval)
+        
+            
 
-        with mouse.Events() as events:
-            # Wait `interval` seconds for the user to be active
-            if events.get(interval) is None:
-                idle_event.set()
-                logger.info(f"User is idle")
-            else:
-                idle_event.clear()
-                last_active = time.time()
-                logger.info(f"User is active")
-
-        time.sleep(5)  # Wait 5 second to lower power consumption
 
 # Scheduler Threads
 def random_scheduler(event: th.Event, interval: int | list[int] = [60, 300]):

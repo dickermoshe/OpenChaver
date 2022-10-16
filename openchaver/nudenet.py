@@ -17,10 +17,14 @@ class NudeNet:
         if not detection_model_path.exists() :
             logger.debug(f"Downloading detection model from {DETECTION_MODEL_URL}")
             download_file(DETECTION_MODEL_URL,detection_model_path,DETECTION_MODEL_SHA256_HASH)
-
-        self.detection_model = onnxruntime.InferenceSession(
-            str(detection_model_path), providers=["CPUExecutionProvider"]
-        )
+        try:
+            self.detection_model = onnxruntime.InferenceSession(
+                str(detection_model_path), providers=["CPUExecutionProvider"]
+            )
+        except Exception as e:
+            logger.exception("Failed to load detection model")
+            detection_model_path.unlink(missing_ok=True)
+            raise e
 
         self.classes = [
             "EXPOSED_ANUS",
