@@ -44,8 +44,6 @@ class DB:
         else:
             logger.info("Database is not system owned, not setting permissions")
 
-
-
 class ScreenshotDB(DB):
     def __init__(self) -> None:
         super().__init__(user=True,system=False)
