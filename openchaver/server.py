@@ -1,3 +1,6 @@
+from .logger import handle_error
+
+@handle_error
 def server():
     import time
     from .db import get_configuration_db
@@ -28,14 +31,17 @@ def server():
         device_id = data['device_id']
 
         # Check if device exists
-        status = api(f'devices/{device_id}/register_device/')
+        status, json = api(f'devices/{device_id}/register_device/')
         if not status:
-            return jsonify({'error': 'Device does not exist'}), 400
+            if len(json.keys()) == 0:
+                return jsonify({'error': 'Cant connect to OpenChaver server.'}), 400
+            else:
+                return jsonify({'error': json['error']}), 400
         else:
             success = configdb.save_device_id(data['device_id'])
             if success:
                 return jsonify({'success': True})
             else:
-                return jsonify({"error": "Current device already configured."}), 400
+                return jsonify({"error": f"Device already configured as {configdb.device_id}"}), 400
 
     app.run(port=LOCAL_SERVER_PORT)

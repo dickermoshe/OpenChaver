@@ -18,11 +18,14 @@ TESTING = not is_frozen() # Is testing if not frozen
 if os.name == 'nt':
 
     LOCAL_DATA_DIR = Path(__file__).parent.parent / 'local_data'
+
     
     if TESTING:
         SYSTEM_DATA_DIR = Path(__file__).parent.parent / 'system_data'
+        USER_DATA_DIR = Path(__file__).parent.parent / 'user_data'
     else:
         SYSTEM_DATA_DIR = Path(os.path.expandvars('%ProgramData%')) / 'OpenChaver'
+        USER_DATA_DIR = Path(os.getenv('APPDATA')) / 'openchaver'
 
     LOG_FILE = SYSTEM_DATA_DIR / 'openchaver.log'
     MODEL_PATH = SYSTEM_DATA_DIR / "nsfw_model"

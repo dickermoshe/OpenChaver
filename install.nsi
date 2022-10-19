@@ -28,10 +28,12 @@ Section "Installer"
 
     # Copy all the contents of ./openchaver.dist to the install directory
     File /r "build\openchaver.dist\"
-    File /r "bin\"
 
     # define uninstaller name
     WriteUninstaller $INSTDIR\uninstaller.exe
+
+    # Create a shortcut to the program in Startups
+    CreateShortCut "$SMSTARTUP\OpenChaver.lnk" "$INSTDIR\openchaver.exe"
 
 
 # default section end
@@ -42,6 +44,8 @@ Section "Uninstall"
 
     # Delete all files from inside $INSTDIR recursively
     RMDir /r $INSTDIR
-    
 
+    # Delete the shortcut from Startups
+    Delete "$SMSTARTUP\OpenChaver.lnk"
+    
 SectionEnd

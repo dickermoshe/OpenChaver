@@ -17,3 +17,22 @@ file_handler = TimedRotatingFileHandler(LOG_FILE,backupCount = 7, encoding="utf-
 file_handler.setLevel(logging.DEBUG)
 file_handler.setFormatter(formatter)
 logger.addHandler(file_handler)
+
+def handle_exception(exc_type, exc_value, exc_traceback):
+    import sys
+    if issubclass(exc_type, KeyboardInterrupt):
+        sys.__excepthook__(exc_type, exc_value, exc_traceback)
+        return
+    logging.critical("Uncaught exception", exc_info=(exc_type, exc_value, exc_traceback))
+
+
+def handle_error(func):
+    import sys
+
+    def __inner(*args, **kwargs):
+        try:
+            return func(*args, **kwargs)
+        except Exception as e:
+            exc_type, exc_value, exc_tb = sys.exc_info()
+            handle_exception(exc_type, exc_value, exc_tb)
+    return __inner

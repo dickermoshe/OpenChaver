@@ -7,7 +7,7 @@ from dataset.table import Table
 from sqlalchemy import UnicodeText, Boolean, JSON, DateTime
 
 from .utils import chmod, obfuscate_text, obfuscate_image, encode_numpy_to_base64
-from .const import SYSTEM_DATA_DIR , LOCAL_DATA_DIR
+from .const import SYSTEM_DATA_DIR , LOCAL_DATA_DIR, USER_DATA_DIR
 from .window import Window
 
 class DB:
@@ -28,7 +28,6 @@ class DB:
         if not self.db_file.exists():
             table : Table = self.db.create_table('init',)
             table.insert(dict(name='init', value='init'), ensure=False)
-            chmod(self.db_file)
 
         # Set the permissions on the database
         

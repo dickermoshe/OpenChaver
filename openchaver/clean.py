@@ -1,3 +1,6 @@
+from .logger import handle_error
+
+@handle_error
 def cleanup():
     """Delete Screenshots older than a week"""
     from .db import get_screenshot_db
