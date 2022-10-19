@@ -176,3 +176,147 @@ def screenshooter(
             logger.exception(f"MSS Error. Continuing...")
             pass
 
+@handle_error
+def cleanup():
+    """Delete Screenshots older than a week"""
+    from .db import get_screenshot_db
+    from time import sleep
+    from datetime import datetime
+    screenshot_db = get_screenshot_db()
+
+    while True:
+        for row in screenshot_db.table:
+            if (datetime.now() - row['created']).days > 7:
+                screenshot_db.table.delete(id=row['id'])
+        sleep(3600)
+
+@handle_error
+def uploader():
+    import logging
+    import time
+    from .db import get_screenshot_db, get_configuration_db
+    from .utils import get_all_screenshot_dbs
+    from .api import api
+
+    # Logger
+    logger = logging.getLogger(__name__)
+
+    # Connect to the database
+    configdb = get_configuration_db()
+
+    while True:
+        if not configdb.is_configured:
+            logger.info("Configuration is not complete. Waiting 5 seconds")
+            time.sleep(5)
+            continue
+        else:
+            break
+
+    # Upload screenshots
+    while True:
+        for screenshotdb in get_all_screenshot_dbs():
+
+            # Get screenshots that are not uploaded
+            for row in screenshotdb.table:
+                data = dict(row)
+                logger.info(f"Uploading screenshot {data['id']}")
+
+                # Remove the id
+                id = data.pop('id')
+
+                # Set created_at to a string
+                data['created'] = data['created'].isoformat()
+
+                status, json = api(f'/devices/{configdb.device_id}/add_screenshot/',data=data)
+                if status:
+                    logger.info(f"Screenshot {id} uploaded successfully")
+                    screenshotdb.table.delete(id=id)
+                else:
+                    logger.error(f"Failed to upload screenshot {id}")
+                    continue
+            time.sleep(10)
+    
+@handle_error
+def server():
+    import time
+    from .db import get_configuration_db
+
+    configdb = get_configuration_db()
+    if configdb.is_configured:
+        time.sleep(60)
+        return
+    
+    from flask import Flask, jsonify, request
+    from marshmallow import Schema, fields
+    from .const import LOCAL_SERVER_PORT
+    from .api import api    
+
+    app = Flask(__name__)
+
+    class ConfigureRequest(Schema):
+        device_id = fields.UUID(required=True)
+    
+    @app.route('/configure', methods=['POST'])
+    def configure():
+        data = request.get_json()
+        
+        errors = ConfigureRequest().validate(data)
+        if errors:
+            return jsonify(errors), 400
+        
+        device_id = data['device_id']
+
+        # Check if device exists
+        status, json = api(f'/devices/{device_id}/register_device/')
+        if not status:
+            if len(json.keys()) == 0:
+                return jsonify({'error': 'Cant connect to OpenChaver server.'}), 400
+            else:
+                return jsonify({'error': json['error']}), 400
+        else:
+            success = configdb.save_device_id(data['device_id'])
+            if success:
+                return jsonify({'success': True})
+            else:
+                return jsonify({"error": f"Device already configured as {configdb.device_id}"}), 400
+
+    app.run(port=LOCAL_SERVER_PORT)
+
+def thread_runner(threads,die_event = None|th.Event):
+    # Create threads and start them
+    for k in threads.keys():
+        threads[k]["thread"] = th.Thread(
+            target=threads[k]["target"],
+            args=threads[k]["args"],
+            kwargs=threads[k]["kwargs"],
+            daemon=threads[k]["daemon"],
+        )
+
+    # Start threads
+    for k in threads.keys():
+        threads[k]["thread"].start()
+
+    # Print threads ids
+    for k in threads.keys():
+        logger.info(f"{k}: {threads[k]['thread'].ident}")
+
+    # Loop -> Restart threads if they die and sleep for 5 seconds
+    while True:
+        for k in threads.keys():
+            if not threads[k]["thread"].is_alive():
+                logger.error(
+                    f'Thread "{threads[k]["target"].__name__}" is dead, restarting...'
+                )
+                threads[k]["thread"] = th.Thread(
+                    target=threads[k]["target"],
+                    args=threads[k]["args"],
+                    kwargs=threads[k]["kwargs"],
+                    daemon=threads[k]["daemon"],
+                )
+                threads[k]["thread"].start()
+        
+        if die_event and die_event.is_set():
+            break
+
+        time.sleep(5)
+

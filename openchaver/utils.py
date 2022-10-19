@@ -99,8 +99,10 @@ def download_file(url, path: Path, hash=None):
         if hash:
             if not chech_hash(path, hash):
                 raise Exception("Hash does not match")
-        mode = stat.S_IRUSR | stat.S_IWUSR | stat.S_IRGRP | stat.S_IWGRP | stat.S_IROTH | stat.S_IWOTH
-        chmod(path,mode)
+
+        # Change permissions
+        chmod(path,'+rwx')
+
         logger.info("Model downloaded")
     except:
         logger.error("Failed to download model")
@@ -242,6 +244,23 @@ def get_time_of_last_input()->int:
 def get_idle_time()->int:
     """Return the time the user has been idle"""
     return get_current_time() - get_time_of_last_input()
+
+def get_all_screenshot_dbs():
+    """Return the screenshot DBs from all the users"""  
+    from pathlib import Path
+    from .db import ScreenshotDB, get_screenshot_db
+
+    user_dirs= [user for user in Path("C:\\Users\\").iterdir() if user.is_dir()]
+
+    dbs = [Path(user, "AppData", "Roaming", "OpenChaver", "Teams", "db", ScreenshotDB.__name__.lower()) for user in user_dirs]
+
+    dbs = [db for db in dbs if dir.exists()]
+
+    return [get_screenshot_db(db) for db in dbs]
+
+
+
+
 
 
 

@@ -6,10 +6,14 @@ def cli():
 
 
 @cli.command()
+def monitor():
+    from .monitor import run_monitor
+    run_monitor()
+
+@cli.command()
 def services():
     from .services import run_services
     run_services()
-
 
 
 if __name__ == '__main__':

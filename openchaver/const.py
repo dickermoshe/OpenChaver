@@ -28,18 +28,24 @@ if TESTING:
     USER_DATA_DIR = Path(__file__).parent.parent / "user_data"
 elif os.name == 'nt':
     SYSTEM_DATA_DIR = Path(os.path.expandvars('%ProgramData%')) / 'OpenChaver'
-    USER_DATA_DIR = Path(os.getenv('APPDATA')) / 'openchaver'
+    USER_DATA_DIR = Path(os.getenv('APPDATA')) / 'OpenChaver'
 else:
     print('Unsupported OS')
     exit(1)
 
-LOG_FILE = SYSTEM_DATA_DIR / 'openchaver.log'
+LOG_FILE = USER_DATA_DIR / 'openchaver.log'
 MODEL_PATH = SYSTEM_DATA_DIR / "nsfw_model"
-    
+
 # Create the directories if they don't exist
-SYSTEM_DATA_DIR.mkdir(parents=True, exist_ok=True)
 USER_DATA_DIR.mkdir(parents=True, exist_ok=True)
-MODEL_PATH.mkdir(parents=True, exist_ok=True)
+
+# Check if the user has write permissions
+try:
+    SYSTEM_DATA_DIR.mkdir(parents=True, exist_ok=True)
+    MODEL_PATH.mkdir(parents=True, exist_ok=True)
+except:
+    print('You do not have write permissions to the system data directory')
+    exit(1)
 
 BAD_WORDS = [
     "2 girls 1 cup",
