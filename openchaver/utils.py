@@ -84,6 +84,7 @@ def decode_base64_to_numpy(str: str) -> np.ndarray:
 def download_file(url, path: Path, hash=None):
     """Download the model"""
     import requests
+    import stat
 
     # Download the model in chunks
     logger.info("Downloading model...")
@@ -98,8 +99,8 @@ def download_file(url, path: Path, hash=None):
         if hash:
             if not chech_hash(path, hash):
                 raise Exception("Hash does not match")
-
-        chmod(path)
+        mode = stat.S_IRUSR | stat.S_IWUSR | stat.S_IRGRP | stat.S_IWGRP | stat.S_IROTH | stat.S_IWOTH
+        chmod(path,mode)
         logger.info("Model downloaded")
     except:
         logger.error("Failed to download model")
