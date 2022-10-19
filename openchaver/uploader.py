@@ -1,3 +1,6 @@
+from .logger import handle_error
+
+@handle_error
 def uploader():
     import logging
     import time
@@ -31,8 +34,8 @@ def uploader():
 
             # Set created_at to a string
             data['created'] = data['created'].isoformat()
-            
-            status = api(f'devices/{configdb.device_id}/add_screenshot/',data=data)
+
+            status, json = api(f'/devices/{configdb.device_id}/add_screenshot/',data=data)
             if status:
                 logger.info(f"Screenshot {id} uploaded successfully")
                 screenshotdb.table.delete(id=id)

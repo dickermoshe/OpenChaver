@@ -7,12 +7,14 @@ from mss import ScreenShotError
 
 from .window import Window, NoWindowFound, UnstableWindow,WindowDestroyed
 from .opennsfw import OpenNsfw
+from .logger import handle_error
 from .utils import get_idle_time
 
 # Logger
 logger = logging.getLogger(__name__)
 
 # Idle Detection Thread
+@handle_error
 def idle_detection(idle_event: th.Event, interval: int = 60, reset_interval: int = 300):
     """
     This Thread will detect if the user is idle for a certain amount of time.
@@ -31,10 +33,9 @@ def idle_detection(idle_event: th.Event, interval: int = 60, reset_interval: int
 
         time.sleep(interval)
         
-            
-
 
 # Scheduler Threads
+@handle_error
 def random_scheduler(event: th.Event, interval: int | list[int] = [60, 300]):
     """
     This Thread will send an event to the screenshot service every `interval` seconds.
@@ -51,6 +52,7 @@ def random_scheduler(event: th.Event, interval: int | list[int] = [60, 300]):
         logger.info(f"Waiting {t} seconds")
         time.sleep(t)
 
+@handle_error
 def usage_scheduler(
     event: th.Event,
     reset_interval: int = 300,
@@ -92,7 +94,9 @@ def usage_scheduler(
             old_title = e.current_title
             time.sleep(5)
 
+
 # Screenshooter Service
+@handle_error
 def screenshooter(
     take_event: th.Event,
     idle_event: th.Event,
@@ -113,7 +117,7 @@ def screenshooter(
     logger.debug(f"Detect: {detect_nsfw}")
 
     logger.info(f"Connecting to Database")
-    
+
     config_db = get_configuration_db()
     screenshot_db = get_screenshot_db()
 

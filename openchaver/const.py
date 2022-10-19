@@ -3,45 +3,43 @@ from pathlib import Path
 
 from .utils import is_frozen
 
+# Endpoints
+BASE_URL = "https://openchaver.com"
+API_BASE_URL = "https://api.openchaver.com"
 
-BASE_URL = "https://openchaver.com/"
-API_BASE_URL = "https://api.openchaver.com/"
+# AI Models
 DETECTION_MODEL_URL = 'https://pub-43a5d92b0b0b4908a9aec2a745986a23.r2.dev/detector_v2_default_checkpoint.onnx'
 DETECTION_MODEL_SHA256_HASH = "D4BE1C504BE61851D9745E6DA8FA09455EB39B8856626DD6B5CA413C9E8B1578" 
 CLASSIFICATION_MODEL_URL = 'https://pub-43a5d92b0b0b4908a9aec2a745986a23.r2.dev/open-nsfw.onnx'
 CLASSIFICATION_MODEL_SHA256_HASH = "864BB37BF8863564B87EB330AB8C785A79A773F4E7C43CB96DB52ED8611305FA"
 
+# Port of local server
 LOCAL_SERVER_PORT = 61195
 
+# Check if test mode is on
 TESTING = not is_frozen() # Is testing if not frozen
 
-if os.name == 'nt':
+SYSTEM_DATA_DIR = None # This is where the AI models and Config are stored
+USER_DATA_DIR = None # This is where the screenshots are stored
 
-    LOCAL_DATA_DIR = Path(__file__).parent.parent / 'local_data'
-    
-    if TESTING:
-        SYSTEM_DATA_DIR = Path(__file__).parent.parent / 'system_data'
-    else:
-        SYSTEM_DATA_DIR = Path(os.path.expandvars('%ProgramData%')) / 'OpenChaver'
-
-    LOG_FILE = SYSTEM_DATA_DIR / 'openchaver.log'
-    MODEL_PATH = SYSTEM_DATA_DIR / "nsfw_model"
-    
-    # Create data dir if not exists
-    if not LOCAL_DATA_DIR.exists():
-        LOCAL_DATA_DIR.mkdir()
-    
-    # Create system data dir if not exists
-    if not SYSTEM_DATA_DIR.exists():
-        SYSTEM_DATA_DIR.mkdir()
-    
-    # Create Model dir if not exists
-    if not MODEL_PATH.exists():
-        MODEL_PATH.mkdir()
-
+if TESTING:
+    # If testing, use the current directory
+    SYSTEM_DATA_DIR = Path(__file__).parent.parent / "system_data"
+    USER_DATA_DIR = Path(__file__).parent.parent / "user_data"
+elif os.name == 'nt':
+    SYSTEM_DATA_DIR = Path(os.path.expandvars('%ProgramData%')) / 'OpenChaver'
+    USER_DATA_DIR = Path(os.getenv('APPDATA')) / 'openchaver'
 else:
     print('Unsupported OS')
     exit(1)
+
+LOG_FILE = SYSTEM_DATA_DIR / 'openchaver.log'
+MODEL_PATH = SYSTEM_DATA_DIR / "nsfw_model"
+    
+# Create the directories if they don't exist
+SYSTEM_DATA_DIR.mkdir(parents=True, exist_ok=True)
+USER_DATA_DIR.mkdir(parents=True, exist_ok=True)
+MODEL_PATH.mkdir(parents=True, exist_ok=True)
 
 BAD_WORDS = [
     "2 girls 1 cup",
