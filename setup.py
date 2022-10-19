@@ -20,13 +20,12 @@ setup(
         'flatbuffers==22.9.24', 'greenlet==1.1.3.post0', 'humanfriendly==10.0',
         'idna==3.4', 'itsdangerous==2.1.2', 'Jinja2==3.1.2', 'Mako==1.2.3',
         'MarkupSafe==2.1.1', 'marshmallow==3.18.0', 'mpmath==1.2.1',
-        'mss==6.1.0', 'Nuitka==1.1.5', 'numpy==1.23.4', 'onnxruntime==1.12.1',
+        'mss==6.1.0', 'numpy==1.23.4', 'onnxruntime==1.12.1',
         'opencv-python==4.6.0.66', 'oschmod==0.3.12', 'packaging==21.3',
-        'Pillow==9.2.0', 'protobuf==4.21.7', 'psutil==5.9.2', 'pynput==1.7.6',
-        'pyparsing==3.0.9', 'pyreadline3==3.4.1', 'PySimpleGUI==4.60.4',
-        'pywin32==304', 'requests==2.28.1', 'six==1.16.0',
-        'SQLAlchemy==1.4.41', 'sympy==1.11.1', 'urllib3==1.26.12',
-        'Werkzeug==2.2.2'
+        'Pillow==9.2.0', 'protobuf==4.21.8', 'psutil==5.9.3',
+        'pyparsing==3.0.9', 'pyreadline3==3.4.1', 'pywin32==304',
+        'requests==2.28.1', 'SQLAlchemy==1.4.42', 'sympy==1.11.1',
+        'urllib3==1.26.12', 'Werkzeug==2.2.2'
     ],
     packages=find_packages(),
     entry_points={
