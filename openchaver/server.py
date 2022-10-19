@@ -31,7 +31,7 @@ def server():
         device_id = data['device_id']
 
         # Check if device exists
-        status, json = api(f'devices/{device_id}/register_device/')
+        status, json = api(f'/devices/{device_id}/register_device/')
         if not status:
             if len(json.keys()) == 0:
                 return jsonify({'error': 'Cant connect to OpenChaver server.'}), 400

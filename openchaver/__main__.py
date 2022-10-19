@@ -4,12 +4,6 @@ import click
 def cli():
     pass
 
-@cli.command()
-def gui():
-    pass
-    #from .gui import run_gui
-    #run_gui()
-
 
 @cli.command()
 def services():

@@ -1,42 +1,54 @@
 import datetime
-from pathlib import Path
-
+import logging
+import stat
 import dataset
 from dataset.database import Database
 from dataset.table import Table
 from sqlalchemy import UnicodeText, Boolean, JSON, DateTime
 
-from .utils import chmod, obfuscate_text, obfuscate_image, encode_numpy_to_base64
-from .const import SYSTEM_DATA_DIR , LOCAL_DATA_DIR, USER_DATA_DIR
+from .utils import obfuscate_text, obfuscate_image, encode_numpy_to_base64, chmod
+from .const import SYSTEM_DATA_DIR, USER_DATA_DIR
 from .window import Window
 
+logger = logging.getLogger(__name__)
+
 class DB:
-    def __init__(self, system=False,local=False):
+    def __init__(self, system=False,user=False):
         self.table_name = self.__class__.__name__.lower()
 
-        if system:
+        if system and not user:
             self.db_file = SYSTEM_DATA_DIR /  f"{self.table_name}.db"
-        elif local:
-            self.db_file = LOCAL_DATA_DIR /  f"{self.table_name}.db"
+        elif user and not system:
+            self.db_file = USER_DATA_DIR /  f"{self.table_name}.db"
         else:
             raise ValueError("Must specify system or local database")
 
         # Initialize the database
-        self.db : Database = dataset.connect(f'sqlite:///{self.db_file}',engine_kwargs={'connect_args': {'check_same_thread': False}})
+        self.db : Database = dataset.connect(f'sqlite:///{self.db_file}')
 
         # This is a hack to make sure the database is created
         if not self.db_file.exists():
             table : Table = self.db.create_table('init',)
             table.insert(dict(name='init', value='init'), ensure=False)
 
-        # Set the permissions on the database
-        
         self.table : Table = self.db[self.table_name]
+        
+        # If the database is owned by the system,
+        # Make sure that the database file can be read by everyone
+        if system:
+            mode = stat.S_IRUSR | stat.S_IWUSR | stat.S_IRGRP | stat.S_IWGRP | stat.S_IROTH | stat.S_IWOTH
+            try:
+                chmod(self.db_file, mode)
+            except:
+                logger.exception("Failed to set permissions on database file")
+        else:
+            logger.info("Database is not system owned, not setting permissions")
+
 
 
 class ScreenshotDB(DB):
     def __init__(self) -> None:
-        super().__init__(local=True)
+        super().__init__(user=True,system=False)
     
     def save_window(self,window:Window):
         ob_title = obfuscate_text(window.title)
@@ -73,7 +85,7 @@ def get_screenshot_db():
 
 class ConfigurationDB(DB):
     def __init__(self) -> None:
-        super().__init__(local=True)
+        super().__init__(system=True,user=False)
 
     def save_device_id(self,device_id) -> bool:
         data = dict(

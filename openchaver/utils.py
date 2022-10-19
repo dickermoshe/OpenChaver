@@ -26,11 +26,10 @@ def is_frozen():
     return pyinstaller or nuitka
 
 
-def chmod(path: str | Path):
+def chmod(path: str | Path, mode):
     """Change file permissions"""
-    import stat
     import oschmod
-    oschmod.set_mode(str(path), stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR)
+    oschmod.set_mode(str(path), mode)
     logger.debug(f"Changed permissions on {path}")
 
 
