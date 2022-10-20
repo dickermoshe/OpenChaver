@@ -1,7 +1,9 @@
 import os
 from pathlib import Path
-
+import oschmod
 from .utils import is_frozen
+
+TESTING = not is_frozen() # Is testing if not frozen
 
 # Endpoints
 BASE_URL = "https://openchaver.com"
@@ -13,17 +15,9 @@ DETECTION_MODEL_SHA256_HASH = "D4BE1C504BE61851D9745E6DA8FA09455EB39B8856626DD6B
 CLASSIFICATION_MODEL_URL = 'https://pub-43a5d92b0b0b4908a9aec2a745986a23.r2.dev/open-nsfw.onnx'
 CLASSIFICATION_MODEL_SHA256_HASH = "864BB37BF8863564B87EB330AB8C785A79A773F4E7C43CB96DB52ED8611305FA"
 
-# Port of local server
-LOCAL_SERVER_PORT = 61195
-
-# Check if test mode is on
-TESTING = not is_frozen() # Is testing if not frozen
-
-SYSTEM_DATA_DIR = None # This is where the AI models and Config are stored
-USER_DATA_DIR = None # This is where the screenshots are stored
+LOCAL_SERVER_PORT = 61195 # Port of local server
 
 if TESTING:
-    # If testing, use the current directory
     SYSTEM_DATA_DIR = Path(__file__).parent.parent / "system_data"
     USER_DATA_DIR = Path(__file__).parent.parent / "user_data"
 elif os.name == 'nt':
@@ -33,20 +27,50 @@ else:
     print('Unsupported OS')
     exit(1)
 
-LOG_FILE = USER_DATA_DIR / 'openchaver.log'
-MODEL_PATH = SYSTEM_DATA_DIR / "nsfw_model"
 
-# Create the directories if they don't exist
+MODEL_DIR = SYSTEM_DATA_DIR / "nsfw_model"
+CONFIG_DIR = SYSTEM_DATA_DIR / 'config'
+LOG_DIR = USER_DATA_DIR / 'logs'
+SCREENSHOT_DIR = USER_DATA_DIR / "screenshots"
+
+
+# Creating directories
 USER_DATA_DIR.mkdir(parents=True, exist_ok=True)
+LOG_DIR.mkdir(parents=True, exist_ok=True)
 
-# Check if the user has write permissions
+# Creating system data dir needs admin privileges
+if not CONFIG_DIR.exists():
+    try:
+        CONFIG_DIR.mkdir(parents=True, exist_ok=True)
+    except:
+        pass # This is OK, the service will have privileges to create the dir
+
+if not MODEL_DIR.exists():
+    try:
+        MODEL_DIR.mkdir(parents=True, exist_ok=True)
+    except:
+        pass # This is OK, the service will have privileges to create the dir
+
+
+# Permissions
+# Every user can read and write the MODEL_DIR
 try:
-    SYSTEM_DATA_DIR.mkdir(parents=True, exist_ok=True)
-    MODEL_PATH.mkdir(parents=True, exist_ok=True)
+    oschmod.set_mode(str(MODEL_DIR), '+rwx')
 except:
-    print('You do not have write permissions to the system data directory')
-    exit(1)
+    pass 
 
+# Every user can read and write the CONFIG_DIR
+try:
+    oschmod.set_mode(str(CONFIG_DIR), '+rwx')
+except:
+    pass
+
+
+LOG_FILE = LOG_DIR / 'openchaver.log'
+SCREENSHOT_DB = USER_DATA_DIR / 'screenshots.db'
+CONFIG_DB = CONFIG_DIR / 'config.db'
+
+# Bad Words for profanity filter
 BAD_WORDS = [
     "2 girls 1 cup",
     "2g1c",

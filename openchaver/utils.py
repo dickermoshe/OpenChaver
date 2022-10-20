@@ -25,14 +25,6 @@ def is_frozen():
     logger.debug(f"Pyinstaller: {pyinstaller}, Nuitka: {nuitka}")
     return pyinstaller or nuitka
 
-
-def chmod(path: str | Path, mode):
-    """Change file permissions"""
-    import oschmod
-    oschmod.set_mode(str(path), mode)
-    logger.debug(f"Changed permissions on {path}")
-
-
 def obfuscate_text(text: str):
     """Obfuscate text by replaceing each character with the char next to it in the alphabet"""
     import string
@@ -81,29 +73,33 @@ def decode_base64_to_numpy(str: str) -> np.ndarray:
     return cv.imdecode(np.frombuffer(base64.b64decode(str), np.uint8), -1)
 
 
-def download_file(url, path: Path, hash=None):
+def download_model(url, path: Path, hash=None):
     """Download the model"""
     import requests
-    import stat
+    import onnxruntime
+    import oschmod
 
-    # Download the model in chunks
     logger.info("Downloading model...")
     try:
+        # Download
         response = requests.get(url, stream=True, verify=False)
         with open(path, "wb") as handle:
             for data in response.iter_content(chunk_size=8192):
                 handle.write(data)
-
-        # Check the hash
-        logger.info("Checking hash...")
+        
+        # Check hash
         if hash:
             if not chech_hash(path, hash):
-                raise Exception("Hash does not match")
+                raise Exception("Hash mismatch")
+        
+        # Set permissions
+        oschmod(path, 'a+r')
 
-        # Change permissions
-        chmod(path,'+rwx')
+        # Test Load model
+        onnxruntime.InferenceSession(
+            str(path), providers=["CPUExecutionProvider"]
+        )
 
-        logger.info("Model downloaded")
     except:
         logger.error("Failed to download model")
         path.unlink(missing_ok=True)
@@ -219,45 +215,23 @@ def contains_skin(img: np.ndarray, thresh=1.5) -> bool:
     logger.debug(f"Skin ratio: {skin_ratio}")
     return skin_ratio > thresh
 
-
-
-def get_current_time():
-    """Return the current time as a string"""
-    import os
-    if os.name == 'nt':
-        import win32api
-        try:
-            return win32api.GetTickCount() / 1000
-        except:
-            return 0
-
-def get_time_of_last_input()->int:
-    """Return the time of the last user input"""
-    import os
-    if os.name == 'nt':
-        import win32api
-        try:
-            return win32api.GetLastInputInfo() / 1000
-        except:
-            return 0
-
 def get_idle_time()->int:
     """Return the time the user has been idle"""
-    return get_current_time() - get_time_of_last_input()
+    import os
+    if os.name == 'nt':
+        import win32api
+        
+        try:
+            current =  win32api.GetTickCount() / 1000
+        except:
+            current = 0
+        try:
+            last = win32api.GetLastInputInfo() / 1000
+        except:
+            last = 0
+        return current - last
 
-def get_all_screenshot_dbs():
-    """Return the screenshot DBs from all the users"""  
-    from pathlib import Path
-    from .db import ScreenshotDB, get_screenshot_db
-
-    user_dirs= [user for user in Path("C:\\Users\\").iterdir() if user.is_dir()]
-
-    dbs = [Path(user, "AppData", "Roaming", "OpenChaver", "Teams", "db", ScreenshotDB.__name__.lower()) for user in user_dirs]
-
-    dbs = [db for db in dbs if dir.exists()]
-
-    return [get_screenshot_db(db) for db in dbs]
-
+        
 
 
 

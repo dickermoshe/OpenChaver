@@ -1,11 +1,13 @@
 from setuptools import setup, find_packages
+from openchaver import __version__
+
 
 with open("README.md", "r", encoding="utf-8") as fh:
     long_description = fh.read()
 
 setup(
     name="openchaver_client",
-    version='0.4.0',
+    version=__version__,
     author="Moshe Dicker",
     author_email='mail@openchaver.com',
     description="An open source alternative to WebChaver.",

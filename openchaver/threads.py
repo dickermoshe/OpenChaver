@@ -195,7 +195,6 @@ def uploader():
     import logging
     import time
     from .db import get_screenshot_db, get_configuration_db
-    from .utils import get_all_screenshot_dbs
     from .api import api
 
     # Logger
@@ -203,6 +202,7 @@ def uploader():
 
     # Connect to the database
     configdb = get_configuration_db()
+    screenshotdb = get_screenshot_db()
 
     while True:
         if not configdb.is_configured:
@@ -214,27 +214,25 @@ def uploader():
 
     # Upload screenshots
     while True:
-        for screenshotdb in get_all_screenshot_dbs():
+        # Get screenshots that are not uploaded
+        for row in screenshotdb.table:
+            data = dict(row)
+            logger.info(f"Uploading screenshot {data['id']}")
 
-            # Get screenshots that are not uploaded
-            for row in screenshotdb.table:
-                data = dict(row)
-                logger.info(f"Uploading screenshot {data['id']}")
+            # Remove the id
+            id = data.pop('id')
 
-                # Remove the id
-                id = data.pop('id')
+            # Set created_at to a string
+            data['created'] = data['created'].isoformat()
 
-                # Set created_at to a string
-                data['created'] = data['created'].isoformat()
-
-                status, json = api(f'/devices/{configdb.device_id}/add_screenshot/',data=data)
-                if status:
-                    logger.info(f"Screenshot {id} uploaded successfully")
-                    screenshotdb.table.delete(id=id)
-                else:
-                    logger.error(f"Failed to upload screenshot {id}")
-                    continue
-            time.sleep(10)
+            status, json = api(f'/devices/{configdb.device_id}/add_screenshot/',data=data)
+            if status:
+                logger.info(f"Screenshot {id} uploaded successfully")
+                screenshotdb.table.delete(id=id)
+            else:
+                logger.error(f"Failed to upload screenshot {id}")
+                continue
+        time.sleep(10)
     
 @handle_error
 def server():
@@ -274,7 +272,7 @@ def server():
             else:
                 return jsonify({'error': json['error']}), 400
         else:
-            success = configdb.save_device_id(data['device_id'])
+            success = configdb.table.insert(dict(device_id=device_id))
             if success:
                 return jsonify({'success': True})
             else:

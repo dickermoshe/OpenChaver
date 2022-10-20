@@ -3,28 +3,24 @@ import logging
 import numpy as np
 from PIL import Image
 
-from .const import MODEL_PATH, DETECTION_MODEL_URL, DETECTION_MODEL_SHA256_HASH
-from .utils import download_file, match_size, resize_image
+from .const import MODEL_DIR, DETECTION_MODEL_URL, DETECTION_MODEL_SHA256_HASH
+from .utils import download_model, match_size, resize_image
 
 logger = logging.getLogger(__name__)
 
 class NudeNet:
     def __init__(self):
         import onnxruntime
-        detection_model_path = MODEL_PATH / "nude_net.onnx"
-        logger.debug(f"Loading detection model from {detection_model_path}")
+        model_file = MODEL_DIR / "nude_net.onnx"
+        logger.debug(f"Loading detection model from {model_file}")
 
-        if not detection_model_path.exists() :
+        if not model_file.exists() :
             logger.debug(f"Downloading detection model from {DETECTION_MODEL_URL}")
-            download_file(DETECTION_MODEL_URL,detection_model_path,DETECTION_MODEL_SHA256_HASH)
-        try:
-            self.detection_model = onnxruntime.InferenceSession(
-                str(detection_model_path), providers=["CPUExecutionProvider"]
-            )
-        except Exception as e:
-            logger.exception("Failed to load detection model")
-            detection_model_path.unlink(missing_ok=True)
-            raise e
+            download_model(DETECTION_MODEL_URL,model_file,DETECTION_MODEL_SHA256_HASH)
+        
+        self.detection_model = onnxruntime.InferenceSession(
+            str(model_file), providers=["CPUExecutionProvider"]
+        )
 
         self.classes = [
             "EXPOSED_ANUS",

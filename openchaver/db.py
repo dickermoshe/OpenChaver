@@ -1,18 +1,19 @@
 import datetime
 import logging
 import dataset
-from dataset.database import Database
+from dataset.database import Database , Table
 from sqlalchemy import UnicodeText, Boolean, JSON, DateTime
 from pathlib import Path
+import oschmod
 
 from .utils import obfuscate_text, obfuscate_image, encode_numpy_to_base64
-from .const import SYSTEM_DATA_DIR, USER_DATA_DIR
+from .const import SCREENSHOT_DB, CONFIG_DB
 from .window import Window
 
 logger = logging.getLogger(__name__)
 
 class DB:
-    def __init__(self, system=False,user:bool|str=False):
+    def __init__(self, db_file: Path,public = False):
         """
         Base class for the database
 
@@ -21,34 +22,31 @@ class DB:
             user (bool|str, optional): Use the user database. Defaults to False. If a string is passed, it will be used as the database location.
         """
         self.table_name = self.__class__.__name__.lower()
-
-        if system and not user:
-            self.db_path = SYSTEM_DATA_DIR / 'db' / f'{self.table_name}.db'
-        elif user and not system and isinstance(user, bool):
-            self.db_path = USER_DATA_DIR / 'db' / f'{self.table_name}.db'
-        elif user and not system and isinstance(user, str) and Path(user).exists():
-            self.db_path = Path(user)
-        else:
-            raise ValueError("Must specify system or local database")
+        self.db_file = db_file
 
         # Create parent directories if they don't exist
-        if not self.db_path.parent.exists():
-            self.db_path.parent.mkdir(parents=True)
-    
+        if not self.db_file.parent.exists():
+            self.db_file.parent.mkdir(parents=True)
+
+        exist = self.db_file.exists()
+
         # Initialize the database
         self.db : Database = dataset.connect(f'sqlite:///{self.db_file}')
 
-        # This is a hack to make sure the database is created
-        Table = self.db.create_table('init',)
+        # Create the table if it doesn't exist
+        if not exist:
+            t : Table = self.db['init'] # This is a hack to make sure the database is created
+            t.insert(dict(a=1))
 
+            if public:
+                oschmod.set_mode(str(self.db_file), 'a+rwx')
+
+        # Set Table
         self.table : Table = self.db[self.table_name]
 
 class ScreenshotDB(DB):
-    def __init__(self,path:str|None=None) -> None:
-        if path == None:
-            super().__init__(user=True,system=False)
-        else:
-            super().__init__(user=path,system=False)
+    def __init__(self) -> None:
+        super().__init__(SCREENSHOT_DB,public=False)
     
     def save_window(self,window:Window):
         ob_title = obfuscate_text(window.title)
@@ -80,12 +78,12 @@ class ScreenshotDB(DB):
         )
         self.table.insert(data,ensure=True,types=types)
 
-def get_screenshot_db(path:str|None=None):
-    return ScreenshotDB(path=path)
+def get_screenshot_db():
+    return ScreenshotDB()
 
 class ConfigurationDB(DB):
     def __init__(self) -> None:
-        super().__init__(system=True,user=False,create=False)
+        super().__init__(CONFIG_DB,public=True)
     
     @property
     def is_configured(self) -> bool:

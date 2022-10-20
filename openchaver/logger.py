@@ -1,5 +1,5 @@
 import logging
-from logging.handlers import TimedRotatingFileHandler
+from logging.handlers import RotatingFileHandler
 
 from .const import LOG_FILE
 
@@ -13,12 +13,10 @@ formatter = logging.Formatter('%(asctime)s - %(name)s -> %(funcName)s  %(levelna
 ch.setFormatter(formatter)
 logger.addHandler(ch)
 
-file_handler = TimedRotatingFileHandler(LOG_FILE,backupCount = 7, encoding="utf-8", delay=True, when="D")
+file_handler = RotatingFileHandler(LOG_FILE, maxBytes=10 * 1000 * 1000, backupCount=5, encoding='utf-8')
 file_handler.setLevel(logging.DEBUG)
 file_handler.setFormatter(formatter)
 logger.addHandler(file_handler)
-
-
 
 def handle_error(func):
     def __inner(*args, **kwargs):

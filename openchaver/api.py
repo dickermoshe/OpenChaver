@@ -12,7 +12,7 @@ def get_json(r: requests.Response) -> dict:
     except:
         return {}
 
-def api(url,data=None,method='POST') -> list:
+def api(url,data=None,method='POST') -> list[bool,dict]:
     try:
         logger.info(f"Calling {API_BASE_URL + url} as {method}")
         r = requests.request(method, API_BASE_URL + url, json=data,verify=False)
@@ -30,3 +30,4 @@ def api(url,data=None,method='POST') -> list:
         status = False
 
     return status, json
+

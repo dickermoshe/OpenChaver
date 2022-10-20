@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 
 def run_monitor(die_event: th.Event|None = None):
     """
-    Run all services
+    Run the monitor
     """
 
     # Create events

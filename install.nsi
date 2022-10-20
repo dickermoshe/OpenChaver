@@ -1,5 +1,5 @@
 # set the name of the installer
-!define VERSION "0.4.0"
+!define VERSION "0.4.1"
 Name "OpenChaver ${VERSION}"
 Outfile "Installer.exe"
  
@@ -28,9 +28,19 @@ Section "Installer"
 
     # Copy all the contents of ./openchaver.dist to the install directory
     File /r "build\openchaver.dist\"
+    File /r "bin\"
 
-    # Create a shortcut to the program in Startups
-    CreateShortCut "$SMSTARTUP\OpenChaver.lnk" "$INSTDIR\openchaver.exe services"
+    # Run NSSM to install the OpenChaver service
+    ExecWait '"$INSTDIR\nssm.exe" install OpenChaver "$INSTDIR\openchaver.exe" "services"'
+
+    # Run NSSM to start the OpenChaver service
+    ExecWait '"$INSTDIR\nssm.exe" start OpenChaver'
+
+    # Run NSSM to set the OpenChaver service to start on boot
+    ExecWait '"$INSTDIR\nssm.exe" set OpenChaver Start SERVICE_AUTO_START'
+
+    # Startup
+    WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Run" "OpenChaver" '"$InstDir\openchaver.exe services"'
 
 
 # default section end

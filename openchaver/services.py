@@ -15,12 +15,6 @@ def run_services(die_event: th.Event|None = None):
             "kwargs": {},
             "daemon": True,
         },
-        "uploader":{
-            "target": uploader,
-            "args": (),
-            "kwargs": {},
-            "daemon": True,
-        }
     }
     thread_runner(SERVICES, die_event)
 

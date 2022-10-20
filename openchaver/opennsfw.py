@@ -3,28 +3,22 @@ import logging
 import numpy as np
 import cv2 as cv
 
-from .const import MODEL_PATH, CLASSIFICATION_MODEL_URL , CLASSIFICATION_MODEL_SHA256_HASH
-from .utils import download_file
+from .const import MODEL_DIR, CLASSIFICATION_MODEL_URL , CLASSIFICATION_MODEL_SHA256_HASH
+from .utils import download_model
 
 logger = logging.getLogger(__name__)
 
 class OpenNsfw:
     def __init__(self):
-        classify_model_path = MODEL_PATH / "open_nsfw.onnx"
-        logger.info(f"Loading classification model from {classify_model_path}")
+        model_file = MODEL_DIR / "open_nsfw.onnx"
+        logger.info(f"Loading classification model from {model_file}")
 
-        if not classify_model_path.exists():
+        if not model_file.exists():
             logger.info(f"Downloading classification model from {CLASSIFICATION_MODEL_URL}")
-            download_file(CLASSIFICATION_MODEL_URL,classify_model_path,CLASSIFICATION_MODEL_SHA256_HASH)
-        else:
-            logger.info(f"Classification model already exists at {classify_model_path}")
+            download_model(CLASSIFICATION_MODEL_URL,model_file,CLASSIFICATION_MODEL_SHA256_HASH)
 
-        try:
-            self.lite_model = cv.dnn.readNet(str(classify_model_path))
-        except Exception as e:
-            logger.exception("Failed to load classification model")
-            classify_model_path.unlink(missing_ok=True)
-            raise e
+        self.lite_model = cv.dnn.readNet(str(model_file))
+
 
 
     def classify(self, images: list[np.ndarray],threshold = 0.6):
