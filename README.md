@@ -33,12 +33,15 @@ Checkout releases for the latest binaries.
 
 To run with python
 ```
+# Install
 python -m venv venv
 venv\Scripts\activate
 pip install openchaver_client
 
+
 # To run the services
 openchaver services
+
 
 # To run the monitor
 openchaver monitor
