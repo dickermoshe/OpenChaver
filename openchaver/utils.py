@@ -93,7 +93,7 @@ def download_model(url, path: Path, hash=None):
                 raise Exception("Hash mismatch")
         
         # Set permissions
-        oschmod(path, 'a+r')
+        oschmod.set_mode(path, 'a+r')
 
         # Test Load model
         onnxruntime.InferenceSession(
