@@ -30,3 +30,17 @@ TODO:
 As you can see, there is a lot to do. If you want to help, please contact me.
 
 Checkout releases for the latest binaries.
+
+To run with python
+```
+python -m venv venv
+venv\Scripts\activate
+pip install openchaver_client
+
+# To run the services
+openchaver services
+
+# To run the monitor
+openchaver monitor
+```
+

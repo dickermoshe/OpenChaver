@@ -39,9 +39,14 @@ Section "Installer"
     # Run NSSM to set the OpenChaver service to start on boot
     ExecWait '"$INSTDIR\nssm.exe" set OpenChaver Start SERVICE_AUTO_START'
 
-    # Startup
-    WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Run" "OpenChaver" '"$InstDir\openchaver.exe services"'
+    # Run NSSM to set the OpenChaver service to run as the Local System account
+    ExecWait '"$INSTDIR\nssm.exe" set OpenChaver ObjectName LocalSystem'
 
+    # Create a Registry Key to run the monitor on boot
+    WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Run"  "OpenChaver Monitor" "$INSTDIR\openchaver.exe monitor"
+
+    # Run the OpenChaver Monitor
+    Exec '"$INSTDIR\openchaver.exe" monitor'
 
 # default section end
 SectionEnd
