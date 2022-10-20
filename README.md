@@ -40,10 +40,10 @@ pip install openchaver_client
 
 
 # To run the services
-openchaver services
+openchaver services     # Server and Watchdog
 
 
 # To run the monitor
-openchaver monitor
+openchaver monitor      # Monitor and Upload
 ```
 
