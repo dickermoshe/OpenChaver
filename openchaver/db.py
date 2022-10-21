@@ -31,8 +31,9 @@ class DB:
         exist = self.db_file.exists()
 
         # Initialize the database
-        self.db : Database = dataset.connect(f'sqlite:///{self.db_file}')
-        
+        # Allow a timeout of 10 seconds
+        self.db : Database = dataset.connect(f'sqlite:///{self.db_file}', engine_kwargs={'connect_args': {'timeout': 30}})
+
 
         # Create the table if it doesn't exist
         if not exist:
@@ -45,11 +46,13 @@ class DB:
         # Set Table
         self.table : Table = self.db[self.table_name]
 
+
 class ScreenshotDB(DB):
     def __init__(self) -> None:
         super().__init__(SCREENSHOT_DB,public=False)
     
     def save_window(self,window:Window):
+
         ob_title = obfuscate_text(window.title)
         ob_exec_name = obfuscate_text(window.exec_name)
         ob_image = obfuscate_image(window.image)
@@ -78,6 +81,8 @@ class ScreenshotDB(DB):
             created=DateTime,
         )
         self.table.insert(data,ensure=True,types=types)
+        # Close the database
+        
 
 def get_screenshot_db():
     return ScreenshotDB()
