@@ -32,6 +32,7 @@ class DB:
 
         # Initialize the database
         self.db : Database = dataset.connect(f'sqlite:///{self.db_file}')
+        
 
         # Create the table if it doesn't exist
         if not exist:
@@ -98,3 +99,5 @@ class ConfigurationDB(DB):
 
 def get_configuration_db():
     return ConfigurationDB()
+
+

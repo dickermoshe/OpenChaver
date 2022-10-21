@@ -1,11 +1,20 @@
 import os
-import subprocess
 from pathlib import Path
+import subprocess
 import psutil
 import logging
+import shutil
 logger = logging.getLogger(__name__)
 
-build_cmd = lambda cmd: [str(i) for i in cmd]
+def to_str(cmd:list):
+    output = []
+    for i in cmd:
+        if isinstance(i, list):
+            output.extend(to_str(i))
+        else:
+            output.append(str(i))
+    
+    return output
 
 def run_setup():
     """
@@ -17,41 +26,44 @@ def run_setup():
         1. The OpenChaver Service
         2. The OpenChaver Auto Start Link in the Communal Startup Foler
     """
+    if os.name == 'nt':
+        # Create the OpenChaver Service
+        from .const import SERVICE_NAME,BASE_EXE, MONITOR_ARGS, SERVICES_ARGS, INSTALL_DIR,TESTING
 
-    # Create the OpenChaver Service
-    from .const import SERVICE_NAME,NSSM_EXE, STARTUP_FOLDER,BASE_EXE, MONITOR_ARGS,SERVICE_ARGS
+        NSSM_EXE = Path('C:\\nssm.exe') if TESTING else INSTALL_DIR / 'nssm.exe'
+        if TESTING and not NSSM_EXE.exists():
+            shutil.copyfile((INSTALL_DIR / 'bin' / 'nssm.exe'), NSSM_EXE)
 
-    # Remove the service if it exists
-    if SERVICE_NAME in [i.name() for i in psutil.win_service_iter()]:
-        logger.info(f"Removing {SERVICE_NAME}")
-        subprocess.run(build_cmd([NSSM_EXE,'remove',SERVICE_NAME,'confirm']))
+        # Edit the service if it exists
+        if SERVICE_NAME in [i.name() for i in psutil.win_service_iter()]:
+            # Stop the service
+            logger.info("Stopping the OpenChaver Service")
+            subprocess.run(to_str([NSSM_EXE, 'stop', SERVICE_NAME]))
+            # Set the service executable
+            logger.info("Updating the OpenChaver Service")
+            subprocess.run(to_str([NSSM_EXE, 'set', SERVICE_NAME, 'Application', BASE_EXE, SERVICES_ARGS]))
+        else:
+            # Create the OpenChaver Service
+            logger.info(f"Creating {SERVICE_NAME}")
+            subprocess.run(to_str([NSSM_EXE,'install',SERVICE_NAME,BASE_EXE,SERVICES_ARGS]))
+        
+        # Auto Start the OpenChaver Service
+        logger.info(f"Auto Starting {SERVICE_NAME}")
+        subprocess.run(to_str([NSSM_EXE,'set',SERVICE_NAME,'Start','SERVICE_AUTO_START']))
+        
+        # Set the OpenChaver Service to run restart on failure
+        subprocess.run(to_str([NSSM_EXE,'set',SERVICE_NAME,'AppExit','Default','Restart']))
+        
+        # Set logging
+        subprocess.run(to_str([NSSM_EXE,'set',SERVICE_NAME,'AppStdout',INSTALL_DIR / 'logs' / 'service.log']))
+        subprocess.run(to_str([NSSM_EXE,'set',SERVICE_NAME,'AppStderr',INSTALL_DIR / 'logs' / 'service.log']))
+        
+        # Start the OpenChaver Service
+        logger.info(f"Starting {SERVICE_NAME}")
+        subprocess.run(to_str([NSSM_EXE,'start',SERVICE_NAME]))
 
-    # Create the OpenChaver Service
-    cmd = build_cmd([NSSM_EXE,'install',SERVICE_NAME,BASE_EXE] + SERVICE_ARGS)
-    logger.info("Creating OpenChaver Service")
-    logger.info(f"Running: {cmd}")
-    subprocess.run(cmd)
-
-    # Start the OpenChaver Service
-    cmd = build_cmd([NSSM_EXE,'start',SERVICE_NAME])
-    logger.info("Starting OpenChaver Service")
-    logger.info(f"Running: {cmd}")
-    subprocess.run(cmd,)
-
-    # Create the OpenChaver Auto Start Shortcut in the Communal Startup Foler
-    from .utils import create_shortcut
-    logger.info("Creating OpenChaver Auto Start Shortcut")
-    SHORTCUT_PATH = STARTUP_FOLDER / f'{SERVICE_NAME}.lnk'
-    create_shortcut(
-        path = SHORTCUT_PATH,
-        target = BASE_EXE,
-        working_dir = Path.cwd(),
-        args = subprocess.list2cmdline(MONITOR_ARGS),
-        description = f"OpenChaver Auto Start Shortcut",)
-
-
-    
-
-    
-
-    
+        # Add registry key to start the monitor on startup
+        # HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\Run
+        logger.info(f"Adding {SERVICE_NAME} to startup")
+        monitor_command = subprocess.list2cmdline(to_str([BASE_EXE,MONITOR_ARGS]))
+        subprocess.run(to_str(['reg','add','HKLM\\Software\\Microsoft\\Windows\\CurrentVersion\\Run','/v',SERVICE_NAME,'/t','REG_SZ','/d',monitor_command,'/f']))

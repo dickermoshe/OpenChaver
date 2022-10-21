@@ -6,6 +6,10 @@ from .utils import is_frozen
 
 TESTING = not is_frozen() # Is testing if not frozen
 
+PROGRAM_NAME = "OpenChaver"
+SERVICE_NAME = "OpenChaver Service" if not TESTING else "OpenChaver Service (TESTING)"
+EXE_NAME = 'openchaver.exe' if os.name == 'nt' else 'openchaver'
+
 # Endpoints
 BASE_URL = "https://openchaver.com"
 API_BASE_URL = "https://api.openchaver.com"
@@ -16,24 +20,33 @@ DETECTION_MODEL_SHA256_HASH = "D4BE1C504BE61851D9745E6DA8FA09455EB39B8856626DD6B
 CLASSIFICATION_MODEL_URL = 'https://pub-43a5d92b0b0b4908a9aec2a745986a23.r2.dev/open-nsfw.onnx'
 CLASSIFICATION_MODEL_SHA256_HASH = "864BB37BF8863564B87EB330AB8C785A79A773F4E7C43CB96DB52ED8611305FA"
 
-LOCAL_SERVER_PORT = 61195 # Port of local server
+# Port of local server
+LOCAL_SERVER_PORT = 61195 
 
+
+# Dirs
 if TESTING:
-    INSTALL_DIR = Path(__file__).parent.parent
+    INSTALL_DIR = Path(__file__).parent.parent # Root of the project
     SYSTEM_DATA_DIR = Path(__file__).parent.parent / "system_data"
     USER_DATA_DIR = Path(__file__).parent.parent / "user_data"
 elif os.name == 'nt':
-    INSTALL_DIR = Path(os.path.expandvars('%ProgramFiles(x86)%')) / "OpenChaver"
-    SYSTEM_DATA_DIR = Path(os.path.expandvars('%ProgramData%')) / 'OpenChaver'
-    USER_DATA_DIR = Path(os.getenv('APPDATA')) / 'OpenChaver'
+    INSTALL_DIR = Path(os.path.expandvars('%ProgramFiles(x86)%')) / PROGRAM_NAME
+    SYSTEM_DATA_DIR = Path(os.path.expandvars('%ProgramData%')) / PROGRAM_NAME
+    USER_DATA_DIR = Path(os.getenv('APPDATA')) / PROGRAM_NAME
 else:
     print('Unsupported OS')
     exit(1)
 
-
+# Where AI models are stored
 MODEL_DIR = SYSTEM_DATA_DIR / "nsfw_model"
+
+# Where the Config file is stored
 CONFIG_DIR = SYSTEM_DATA_DIR / 'config'
+
+# Where the logs are stored, theseare user specific
 LOG_DIR = USER_DATA_DIR / 'logs'
+
+# Where the screenshots are stored, these are user specific
 SCREENSHOT_DIR = USER_DATA_DIR / "screenshots"
 
 
@@ -72,28 +85,20 @@ except:
 LOG_FILE = LOG_DIR / 'openchaver.log'
 SCREENSHOT_DB = USER_DATA_DIR / 'screenshots.db'
 CONFIG_DB = CONFIG_DIR / 'config.db'
-NSSM_EXE = INSTALL_DIR / "nssm.exe"
 
-SERVICE_NAME = "OpenChaver Service" if not TESTING else "OpenChaver Service (TESTING)"
 
 # STARTUP_FOLDER in PROGRAM_DATA
 STARTUP_FOLDER = Path(os.path.expandvars('%ProgramData%')) / 'Microsoft' / 'Windows' / 'Start Menu' / 'Programs' / 'Startup'
 
-to_str = lambda cmd: [str(i) for i in cmd]
+
 if TESTING:
     BASE_EXE = Path(sys.executable)
-    MONITOR_ARGS = to_str([ SYSTEM_DATA_DIR.parent / "openchaver.py" , "monitor" ])
-    SERVICE_ARGS = to_str([ SYSTEM_DATA_DIR.parent / "openchaver.py" , "service" ])
+    MONITOR_ARGS = [ SYSTEM_DATA_DIR.parent / "openchaver.py" , "monitor" ]
+    SERVICES_ARGS = [ SYSTEM_DATA_DIR.parent / "openchaver.py" , "service" ]
 else:
     BASE_EXE = INSTALL_DIR / 'openchaver.exe'
-    SERVICE_ARGS =to_str( [ "services" ])
-    MONITOR_ARGS =to_str([ "monitor" ])
-
-
-
-
-
-
+    SERVICES_ARGS = [ "services" ]
+    MONITOR_ARGS =[ "monitor" ]
 
 
 # Bad Words for profanity filter
