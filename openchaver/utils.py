@@ -231,6 +231,62 @@ def get_idle_time()->int:
             last = 0
         return current - last
 
+def create_shortcut(
+    path: Path,
+    target: Path,
+    working_dir: Path,
+    args: str = "",
+    icon: Path = None,
+    description: str = "",
+    admin: bool = False,
+):
+    """Create a shortcut"""
+    import win32com.client
+    import pythoncom
+
+    if path.exists():
+        path.unlink()
+
+    pythoncom.CoInitialize()
+    shell = win32com.client.Dispatch("WScript.Shell")
+    shortcut = shell.CreateShortCut(str(path))
+    shortcut.Targetpath = str(target)
+    shortcut.WorkingDirectory = str(working_dir)
+    shortcut.Arguments = args
+    if icon:
+        shortcut.IconLocation = str(icon)
+    shortcut.Description = description
+    if admin:
+        shortcut.WindowStyle = 7
+    shortcut.save()
+
+def monitor_is_running()->bool:
+    """Check if the monitor is on"""
+    import os
+    import psutil
+    from .const import TESTING
+
+    self_pid = os.getpid()
+    for proc in psutil.process_iter():
+        if proc.pid == self_pid:
+            continue
+        try:
+            cmdline = proc.cmdline()
+            cmdline_str = " ".join(cmdline).lower()
+        except:
+            continue
+
+        if TESTING:
+            if ("python.exe" in cmdline_str 
+            and "openchaver.py" in cmdline_str
+            and cmdline[-1] == "monitor"):
+                return True
+        else:
+            if ("openchaver.exe" in cmdline_str 
+            and cmdline[-1] == "monitor"):
+                return True
+
+
         
 
 

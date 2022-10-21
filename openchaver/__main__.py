@@ -15,6 +15,12 @@ def services():
     from .services import run_services
     run_services()
 
+@cli.command()
+def setup():
+    from .setup import run_setup
+    run_setup()
+
+
 
 if __name__ == '__main__':
     cli()

@@ -1,4 +1,5 @@
 import os
+import sys
 from pathlib import Path
 import oschmod
 from .utils import is_frozen
@@ -18,9 +19,11 @@ CLASSIFICATION_MODEL_SHA256_HASH = "864BB37BF8863564B87EB330AB8C785A79A773F4E7C4
 LOCAL_SERVER_PORT = 61195 # Port of local server
 
 if TESTING:
+    INSTALL_DIR = Path(__file__).parent.parent
     SYSTEM_DATA_DIR = Path(__file__).parent.parent / "system_data"
     USER_DATA_DIR = Path(__file__).parent.parent / "user_data"
 elif os.name == 'nt':
+    INSTALL_DIR = Path(os.path.expandvars('%ProgramFiles(x86)%')) / "OpenChaver"
     SYSTEM_DATA_DIR = Path(os.path.expandvars('%ProgramData%')) / 'OpenChaver'
     USER_DATA_DIR = Path(os.getenv('APPDATA')) / 'OpenChaver'
 else:
@@ -69,6 +72,29 @@ except:
 LOG_FILE = LOG_DIR / 'openchaver.log'
 SCREENSHOT_DB = USER_DATA_DIR / 'screenshots.db'
 CONFIG_DB = CONFIG_DIR / 'config.db'
+NSSM_EXE = INSTALL_DIR / "nssm.exe"
+
+SERVICE_NAME = "OpenChaver Service" if not TESTING else "OpenChaver Service (TESTING)"
+
+# STARTUP_FOLDER in PROGRAM_DATA
+STARTUP_FOLDER = Path(os.path.expandvars('%ProgramData%')) / 'Microsoft' / 'Windows' / 'Start Menu' / 'Programs' / 'Startup'
+
+to_str = lambda cmd: [str(i) for i in cmd]
+if TESTING:
+    BASE_EXE = Path(sys.executable)
+    MONITOR_ARGS = to_str([ SYSTEM_DATA_DIR.parent / "openchaver.py" , "monitor" ])
+    SERVICE_ARGS = to_str([ SYSTEM_DATA_DIR.parent / "openchaver.py" , "service" ])
+else:
+    BASE_EXE = INSTALL_DIR / 'openchaver.exe'
+    SERVICE_ARGS =to_str( [ "services" ])
+    MONITOR_ARGS =to_str([ "monitor" ])
+
+
+
+
+
+
+
 
 # Bad Words for profanity filter
 BAD_WORDS = [

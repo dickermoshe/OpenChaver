@@ -23,30 +23,36 @@ Section "Installer"
     MessageBox MB_OK "Please re-run the Installer as Administrator: $0"
     Return
 
+    # Set SERVICENAME to the name of the service
+    !define SERVICENAME "OpenChaver"
+
     # Set the Output Directory
     SetOutPath $INSTDIR
+
+    # Kill any processes that are running
+    KillProcDLL::KillProc "openchaver.exe"
+
+    # Run NSSM to stop the OpenChaver service if it already exists
+    nsExec::ExecToLog '"$INSTDIR\nssm.exe" stop ${SERVICENAME}'
+
+    # Wait for the process to die
+    Sleep 1000
 
     # Copy all the contents of ./openchaver.dist to the install directory
     File /r "build\openchaver.dist\"
     File /r "bin\"
 
-    # Run NSSM to install the OpenChaver service
-    ExecWait '"$INSTDIR\nssm.exe" install OpenChaver "$INSTDIR\openchaver.exe" "services"'
+    # Run the OpenChaver Setup
+    ExecWait '"$INSTDIR\openchaver.exe" setup'
 
-    # Run NSSM to start the OpenChaver service
-    ExecWait '"$INSTDIR\nssm.exe" start OpenChaver'
 
-    # Run NSSM to set the OpenChaver service to start on boot
-    ExecWait '"$INSTDIR\nssm.exe" set OpenChaver Start SERVICE_AUTO_START'
 
-    # Run NSSM to set the OpenChaver service to run as the Local System account
-    ExecWait '"$INSTDIR\nssm.exe" set OpenChaver ObjectName LocalSystem'
+    
 
-    # Create a Registry Key to run the monitor on boot
-    WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Run"  "OpenChaver Monitor" "$INSTDIR\openchaver.exe monitor"
 
-    # Run the OpenChaver Monitor
-    Exec '"$INSTDIR\openchaver.exe" monitor'
+
+
 
 # default section end
 SectionEnd
+
