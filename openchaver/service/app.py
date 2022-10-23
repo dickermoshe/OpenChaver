@@ -26,7 +26,7 @@ def run_app():
         device_id = fields.UUID(required=True)
 
     # These function open and close the DB connection
-    @app.before_requestP
+    @app.before_request
     def before_request():
         ds.connect()
 

@@ -6,7 +6,7 @@ import logging
 import shutil
 from .utils import to_str
 from .const import (SERVICE_NAME, BASE_EXE, SERVICES_ARGS, INSTALL_DIR,
-                    TESTING, MONITOR_COMMAND)
+                    TESTING, MONITOR_COMMAND, WATCHER_NAME, WATCHER_ARGS)
 
 logger = logging.getLogger(__name__)
 
@@ -82,5 +82,5 @@ def run_setup():
         2. The OpenChaver Auto Start Link in the Communal Startup Foler
     """
     create_service(SERVICE_NAME, BASE_EXE, SERVICES_ARGS)
-    create_service(SERVICE_NAME, BASE_EXE, SERVICES_ARGS)
+    create_service(WATCHER_NAME, BASE_EXE, WATCHER_ARGS)
     create_monitor_startup(SERVICE_NAME, MONITOR_COMMAND)

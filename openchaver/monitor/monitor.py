@@ -94,7 +94,7 @@ def usage_scheduler(
             old_time = time.time()  # Set the time to the current time
 
         except UnstableWindow as e:
-            logger.exception(f"Window Changed to {e.current_title}")
+            logger.info(f"Window Changed to {e.current_title}")
             continue
 
         except NoWindowFound as e:
@@ -187,7 +187,7 @@ def screenshooter(
             time.sleep(interval)
 
         except UnstableWindow as e:
-            logger.exception(f"Window Changed to {e.current_title}")
+            logger.info(f"Window Changed to {e.current_title}")
             continue
 
         except (ScreenShotError, WindowDestroyed, NoWindowFound):

@@ -9,6 +9,9 @@ TESTING = not is_frozen()  # Is testing if not frozen
 PROGRAM_NAME = "OpenChaver"
 SERVICE_NAME = ("OpenChaver Service (TESTING)"
                 if TESTING else "OpenChaver Service")
+WATCHER_NAME = ("OpenChaver Watcher (TESTING)"
+                if TESTING else "OpenChaver Watcher")
+
 EXE_NAME = 'openchaver.exe' if os.name == 'nt' else 'openchaver'
 
 # Endpoints

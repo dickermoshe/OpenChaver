@@ -2,10 +2,11 @@ import os
 from ..logger import handle_error
 import logging
 import time
+from ..utils import start_service_if_stopped
 
 logger = logging.getLogger(__name__)
 if os.name == 'nt':
-    from ..const import MONITOR_COMMAND
+    from ..const import MONITOR_COMMAND, WATCHER_NAME
     import psutil
     import win32ts
     import win32process
@@ -53,3 +54,13 @@ if os.name == 'nt':
                                                  win32process.STARTUPINFO())
                 logger.info(f"Started monitor for {username}")
             time.sleep(interval)
+
+    @handle_error
+    def keep_watcher_alive():
+        """This function Keeps the OpenChaver Watcher running"""
+
+    logger.info("Starting the OpenChaver Watcher")
+    while True:
+        start_service_if_stopped(WATCHER_NAME)
+        logger.info("OpenChaver Watcher is running")
+        time.sleep(10)

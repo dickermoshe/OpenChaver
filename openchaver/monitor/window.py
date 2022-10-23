@@ -71,7 +71,7 @@ class WindowBase:
     def stable_check(self) -> None:
         """Check if the window is stable"""
         try:
-            window_2 = self.__class__.get_active_window()
+            window_2 = self.__class__.get_active_window(recursive=True)
             if window_2.title != self.title:
                 raise UnstableWindow(window_2.title)
         except UnstableWindow:
@@ -258,7 +258,8 @@ if os.name == "nt":
         @classmethod
         def get_active_window(cls,
                               invalid_title: str | None = None,
-                              stable: bool | int = False):
+                              stable: bool | int = False,
+                              recursive: bool = False):
             """Get the active window"""
             try:
                 # Get the active window
@@ -268,7 +269,9 @@ if os.name == "nt":
                 # Check for an invalid title
                 if window.title == invalid_title:
                     raise NoWindowFound(window.title)
-                logger.debug(f"Active window: {window.title}")
+
+                if not recursive:
+                    logger.debug(f"Active window: {window.title}")
 
                 # Check if the window is stable
                 for _ in range(int(stable)):

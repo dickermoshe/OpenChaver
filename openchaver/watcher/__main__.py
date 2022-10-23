@@ -1,4 +1,4 @@
-from .service import run_service
+from .watcher import run_watcher
 
 if __name__ == '__main__':
-    run_service()
+    run_watcher()
