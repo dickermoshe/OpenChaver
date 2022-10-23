@@ -41,64 +41,45 @@ else:
 MODEL_DIR = SYSTEM_DATA_DIR / "nsfw_model"
 
 # Where the Config file is stored
-CONFIG_DIR = SYSTEM_DATA_DIR / 'config'
+DATABASE_DIR = SYSTEM_DATA_DIR / 'db'
 
 # Where the logs are stored, theseare user specific
 LOG_DIR = USER_DATA_DIR / 'logs'
 
-# Where the screenshots are stored, these are user specific
-SCREENSHOT_DIR = USER_DATA_DIR / "screenshots"
-
-
 # Creating directories
-USER_DATA_DIR.mkdir(parents=True, exist_ok=True)
 LOG_DIR.mkdir(parents=True, exist_ok=True)
 
 # Creating system data dir needs admin privileges
-if not CONFIG_DIR.exists():
+if not DATABASE_DIR.exists():
     try:
-        CONFIG_DIR.mkdir(parents=True, exist_ok=True)
+        DATABASE_DIR.mkdir(parents=True, exist_ok=True)
+        oschmod.set_mode(str(DATABASE_DIR), 'a+rwx')
     except:
         pass # This is OK, the service will have privileges to create the dir
 
 if not MODEL_DIR.exists():
     try:
         MODEL_DIR.mkdir(parents=True, exist_ok=True)
+        oschmod.set_mode(str(MODEL_DIR), 'a+rwx')
     except:
         pass # This is OK, the service will have privileges to create the dir
 
 
-# Permissions
-# Every user can read and write the MODEL_DIR
-try:
-    oschmod.set_mode(str(MODEL_DIR), '+rwx')
-except:
-    pass 
-
-# Every user can read and write the CONFIG_DIR
-try:
-    oschmod.set_mode(str(CONFIG_DIR), '+rwx')
-except:
-    pass
-
 
 LOG_FILE = LOG_DIR / 'openchaver.log'
-SCREENSHOT_DB = USER_DATA_DIR / 'screenshots.db'
-CONFIG_DB = CONFIG_DIR / 'config.db'
+DB_PATH = DATABASE_DIR / 'database.db'
 
 
-# STARTUP_FOLDER in PROGRAM_DATA
-STARTUP_FOLDER = Path(os.path.expandvars('%ProgramData%')) / 'Microsoft' / 'Windows' / 'Start Menu' / 'Programs' / 'Startup'
-
+# STARTUP_FOLDER = Path(os.path.expandvars('%ProgramData%')) / 'Microsoft' / 'Windows' / 'Start Menu' / 'Programs' / 'Startup'
 
 if TESTING:
     BASE_EXE = Path(sys.executable)
-    MONITOR_ARGS = [ SYSTEM_DATA_DIR.parent / "openchaver.py" , "monitor" ]
-    SERVICES_ARGS = [ SYSTEM_DATA_DIR.parent / "openchaver.py" , "service" ]
+    SERVICES_ARGS = [ SYSTEM_DATA_DIR.parent / "openchaver.py" , "runservice" ]
+    MONITOR_ARGS = [ SYSTEM_DATA_DIR.parent / "openchaver.py" , "runmonitor" ]
 else:
     BASE_EXE = INSTALL_DIR / 'openchaver.exe'
-    SERVICES_ARGS = [ "services" ]
-    MONITOR_ARGS =[ "monitor" ]
+    SERVICES_ARGS = [ "runservice" ]
+    MONITOR_ARGS =[ "runmonitor" ]
 
 
 # Bad Words for profanity filter

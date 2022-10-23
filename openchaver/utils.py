@@ -215,6 +215,16 @@ def contains_skin(img: np.ndarray, thresh=1.5) -> bool:
     logger.debug(f"Skin ratio: {skin_ratio}")
     return skin_ratio > thresh
 
+def to_str(cmd:list):
+    output = []
+    for i in cmd:
+        if isinstance(i, list):
+            output.extend(to_str(i))
+        else:
+            output.append(str(i).strip())
+    
+    return output
+
 def get_idle_time()->int:
     """Return the time the user has been idle"""
     import os
@@ -231,32 +241,56 @@ def get_idle_time()->int:
             last = 0
         return current - last
 
-
-def monitor_is_running()->bool:
-    """Check if the monitor is on"""
+def restart_serivce():
+    from .const import SERVICE_NAME
     import os
-    import psutil
-    from .const import TESTING
 
-    self_pid = os.getpid()
-    for proc in psutil.process_iter():
-        if proc.pid == self_pid:
-            continue
-        try:
-            cmdline = proc.cmdline()
-            cmdline_str = " ".join(cmdline).lower()
-        except:
-            continue
+    if os.name == 'nt':
+        import win32serviceutil
+        win32serviceutil.RestartService(SERVICE_NAME)
 
-        if TESTING:
-            if ("python.exe" in cmdline_str 
-            and "openchaver.py" in cmdline_str
-            and cmdline[-1] == "monitor"):
-                return True
-        else:
-            if ("openchaver.exe" in cmdline_str 
-            and cmdline[-1] == "monitor"):
-                return True
+
+
+def thread_runner(threads,die_event):
+    # Create threads and start them
+    import threading as th
+    import time
+    
+    for k in threads.keys():
+        threads[k]["thread"] = th.Thread(
+            target=threads[k]["target"],
+            args=threads[k]["args"],
+            kwargs=threads[k]["kwargs"],
+            daemon=threads[k]["daemon"],
+        )
+
+    # Start threads
+    for k in threads.keys():
+        threads[k]["thread"].start()
+
+    # Print threads ids
+    for k in threads.keys():
+        logger.info(f"{k}: {threads[k]['thread'].ident}")
+
+    # Loop -> Restart threads if they die and sleep for 5 seconds
+    while True:
+        for k in threads.keys():
+            if not threads[k]["thread"].is_alive():
+                logger.error(
+                    f'Thread "{threads[k]["target"].__name__}" is dead, restarting...'
+                )
+                threads[k]["thread"] = th.Thread(
+                    target=threads[k]["target"],
+                    args=threads[k]["args"],
+                    kwargs=threads[k]["kwargs"],
+                    daemon=threads[k]["daemon"],
+                )
+                threads[k]["thread"].start()
+        
+        if die_event and die_event.is_set():
+            break
+
+        time.sleep(5)
 
 
         

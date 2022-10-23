@@ -4,17 +4,10 @@ import subprocess
 import psutil
 import logging
 import shutil
+from .utils import to_str
 logger = logging.getLogger(__name__)
 
-def to_str(cmd:list):
-    output = []
-    for i in cmd:
-        if isinstance(i, list):
-            output.extend(to_str(i))
-        else:
-            output.append(str(i))
-    
-    return output
+
 
 def run_setup():
     """

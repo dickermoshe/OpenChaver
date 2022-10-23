@@ -45,14 +45,6 @@ Section "Installer"
     # Run the OpenChaver Setup
     ExecWait '"$INSTDIR\openchaver.exe" setup'
 
-
-
-    
-
-
-
-
-
 # default section end
 SectionEnd
 
