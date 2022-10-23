@@ -257,6 +257,18 @@ def get_idle_time() -> int:
         return current - last
 
 
+def start_service_if_stopped(service_name: str):
+    """Keep the service alive"""
+    import os
+    if os.name == 'nt':
+        # Check if the service is running
+        import win32serviceutil
+        import win32service
+        if win32serviceutil.QueryServiceStatus(
+                service_name)[1] != win32service.SERVICE_RUNNING:  # noqa E501
+            win32serviceutil.StartService(service_name)
+
+
 def thread_runner(threads, die_event=None):
     # Create threads and start them
     import threading as th

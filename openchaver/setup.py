@@ -5,8 +5,71 @@ import psutil
 import logging
 import shutil
 from .utils import to_str
+from .const import (SERVICE_NAME, BASE_EXE, SERVICES_ARGS, INSTALL_DIR,
+                    TESTING, MONITOR_COMMAND)
 
 logger = logging.getLogger(__name__)
+
+
+def create_service(name: str, exe: str | Path, args: str):
+    """
+    This function creates a service using nssm.exe
+    """
+    if os.name == 'nt':
+        logger.info(f"Creating the OpenChaver Service: {name}")
+
+        nssm_path = Path(
+            'C:\\nssm.exe'
+        ) if TESTING else INSTALL_DIR / 'nssm.exe'  # noqa: E501
+
+        if TESTING and not nssm_path.exists():
+            shutil.copyfile((INSTALL_DIR / 'bin' / 'nssm.exe'), nssm_path)
+
+        # Edit the service if it exists
+        if name in [i.name() for i in psutil.win_service_iter()]:
+            # Stop the service
+            logger.info("Stopping the OpenChaver Service")
+            subprocess.run(to_str([nssm_path, 'stop', name]))
+            # Set the service executable
+            logger.info("Updating the OpenChaver Service")
+            subprocess.run(to_str([nssm_path, 'set', name, 'Application',
+                                   exe]))
+            subprocess.run(
+                to_str([nssm_path, 'set', name, 'AppParameters', args]))
+        else:
+            # Create the OpenChaver Service
+            logger.info(f"Creating {name}")
+            subprocess.run(to_str([nssm_path, 'install', name, exe, args]))
+
+        # Auto Start the OpenChaver Service
+        logger.info(f"Auto Starting {name}")
+        subprocess.run(
+            to_str([nssm_path, 'set', name, 'Start', 'SERVICE_AUTO_START']))
+
+        # Set the OpenChaver Service to run restart on failure
+        subprocess.run(
+            to_str([nssm_path, 'set', name, 'AppExit', 'Default', 'Restart']))
+
+        # Set logging
+        subprocess.run(
+            to_str([
+                nssm_path, 'set', name, 'AppStderr',
+                INSTALL_DIR / f'{name}.log'
+            ]))
+
+        # Start the OpenChaver Service
+        subprocess.run(to_str([nssm_path, 'start', name]))
+
+
+def create_monitor_startup(name, command):
+    logger.info(f"Adding {SERVICE_NAME} to startup")
+    if os.name == 'nt':
+        subprocess.run(
+            to_str([
+                'reg', 'add',
+                'HKLM\\Software\\Microsoft\\Windows\\CurrentVersion\\Run',
+                '/v', name, '/t', 'REG_SZ', '/d', command, '/f'
+            ]))
 
 
 def run_setup():
@@ -18,70 +81,6 @@ def run_setup():
         1. The OpenChaver Service
         2. The OpenChaver Auto Start Link in the Communal Startup Foler
     """
-    if os.name == 'nt':
-        # Create the OpenChaver Service
-        from .const import (SERVICE_NAME, BASE_EXE, SERVICES_ARGS, INSTALL_DIR,
-                            TESTING, MONITOR_COMMAND)
-        logger.info(f"Creating the OpenChaver Service: {SERVICE_NAME}")
-        logger.info(f'Basename: {BASE_EXE}')
-        nssm_path = Path(
-            'C:\\nssm.exe') if TESTING else INSTALL_DIR / 'nssm.exe'
-        if TESTING and not nssm_path.exists():
-            shutil.copyfile((INSTALL_DIR / 'bin' / 'nssm.exe'), nssm_path)
-
-        # Edit the service if it exists
-        if SERVICE_NAME in [i.name() for i in psutil.win_service_iter()]:
-            # Stop the service
-            logger.info("Stopping the OpenChaver Service")
-            subprocess.run(to_str([nssm_path, 'stop', SERVICE_NAME]))
-            # Set the service executable
-            logger.info("Updating the OpenChaver Service")
-            subprocess.run(
-                to_str(
-                    [nssm_path, 'set', SERVICE_NAME, 'Application', BASE_EXE]))
-            subprocess.run(
-                to_str([
-                    nssm_path, 'set', SERVICE_NAME, 'AppParameters',
-                    SERVICES_ARGS
-                ]))
-        else:
-            # Create the OpenChaver Service
-            logger.info(f"Creating {SERVICE_NAME}")
-            subprocess.run(
-                to_str([
-                    nssm_path, 'install', SERVICE_NAME, BASE_EXE, SERVICES_ARGS
-                ]))
-
-        # Auto Start the OpenChaver Service
-        logger.info(f"Auto Starting {SERVICE_NAME}")
-        subprocess.run(
-            to_str([
-                nssm_path, 'set', SERVICE_NAME, 'Start', 'SERVICE_AUTO_START'
-            ]))
-
-        # Set the OpenChaver Service to run restart on failure
-        subprocess.run(
-            to_str([
-                nssm_path, 'set', SERVICE_NAME, 'AppExit', 'Default', 'Restart'
-            ]))
-
-        # Set logging
-        subprocess.run(
-            to_str([
-                nssm_path, 'set', SERVICE_NAME, 'AppStderr',
-                INSTALL_DIR / 'service.log'
-            ]))
-
-        # Start the OpenChaver Service
-        logger.info(f"Starting {SERVICE_NAME}")
-        subprocess.run(to_str([nssm_path, 'start', SERVICE_NAME]))
-
-        # Add registry key to start the monitor on startup
-        # HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\Run
-        logger.info(f"Adding {SERVICE_NAME} to startup")
-        subprocess.run(
-            to_str([
-                'reg', 'add',
-                'HKLM\\Software\\Microsoft\\Windows\\CurrentVersion\\Run',
-                '/v', SERVICE_NAME, '/t', 'REG_SZ', '/d', MONITOR_COMMAND, '/f'
-            ]))
+    create_service(SERVICE_NAME, BASE_EXE, SERVICES_ARGS)
+    create_service(SERVICE_NAME, BASE_EXE, SERVICES_ARGS)
+    create_monitor_startup(SERVICE_NAME, MONITOR_COMMAND)

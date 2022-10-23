@@ -64,21 +64,30 @@ DB_PATH = DATABASE_DIR / 'database.db'
 
 if TESTING:
     BASE_EXE = Path(sys.executable)
+
     SERVICES_ARGS = f'"{SYSTEM_DATA_DIR.parent / "openchaver.py"}" runservice'
     SERVICE_COMMAND = f'"{BASE_EXE}" {SERVICES_ARGS}'
+
     MONITOR_ARGS = f'"{SYSTEM_DATA_DIR.parent / "openchaver.py"}" runmonitor'
     MONITOR_COMMAND = f'"{BASE_EXE}" {MONITOR_ARGS}'
     MONITOR_COMMAND_LIST = [
         str(BASE_EXE),
         str(SYSTEM_DATA_DIR.parent / "openchaver.py"), "runmonitor"
     ]
+    WATCHER_ARGS = f'"{SYSTEM_DATA_DIR.parent / "openchaver.py"}" runwatcher'
+    WATCHER_COMMAND = f'"{BASE_EXE}" {WATCHER_ARGS}'
 else:
     BASE_EXE = INSTALL_DIR / 'openchaver.exe'
+
     SERVICES_ARGS = 'runservice'
     SERVICE_COMMAND = f'"{BASE_EXE}" {SERVICES_ARGS}'
+
     MONITOR_ARGS = 'runmonitor'
     MONITOR_COMMAND = f'"{BASE_EXE}" {MONITOR_ARGS}'
     MONITOR_COMMAND_LIST = [str(BASE_EXE), "runmonitor"]
+
+    WATCHER_ARGS = 'runwatcher'
+    WATCHER_COMMAND = f'"{BASE_EXE}" {WATCHER_ARGS}'
 
 # AI Models
 DETECTION_MODEL_URL = 'https://pub-43a5d92b0b0b4908a9aec2a745986a23.r2.dev/detector_v2_default_checkpoint.onnx'  # noqa: E501

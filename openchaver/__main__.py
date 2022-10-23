@@ -27,6 +27,14 @@ def runmonitor():
 
 
 @cli.command()
+def runwatcher():
+    """Run the OpenChaver Monitor"""
+    from .watcher.__main__ import run_watcher
+    logger.info("Running the OpenChaver Watcher")
+    run_watcher()
+
+
+@cli.command()
 def setup():
     """Setup the OpenChaver Service & Auto Start the Monitor"""
     from .setup import run_setup
