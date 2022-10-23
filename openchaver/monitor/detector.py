@@ -3,24 +3,27 @@ import logging
 import numpy as np
 from PIL import Image
 
-from .const import MODEL_DIR, DETECTION_MODEL_URL, DETECTION_MODEL_SHA256_HASH
-from .utils import download_model, match_size, resize_image
+from ..const import MODEL_DIR, DETECTION_MODEL_URL, DETECTION_MODEL_SHA256_HASH
+from ..utils import download_model, match_size, resize_image
 
 logger = logging.getLogger(__name__)
 
-class NudeNet:
+
+class Detector:
+
     def __init__(self):
         import onnxruntime
-        model_file = MODEL_DIR / "nude_net.onnx"
+        model_file = MODEL_DIR / "detect.onnx"
         logger.debug(f"Loading detection model from {model_file}")
 
-        if not model_file.exists() :
-            logger.debug(f"Downloading detection model from {DETECTION_MODEL_URL}")
-            download_model(DETECTION_MODEL_URL,model_file,DETECTION_MODEL_SHA256_HASH)
-        
+        if not model_file.exists():
+            logger.debug(
+                f"Downloading detection model from {DETECTION_MODEL_URL}")
+            download_model(DETECTION_MODEL_URL, model_file,
+                           DETECTION_MODEL_SHA256_HASH)
+
         self.detection_model = onnxruntime.InferenceSession(
-            str(model_file), providers=["CPUExecutionProvider"]
-        )
+            str(model_file), providers=["CPUExecutionProvider"])
 
         self.classes = [
             "EXPOSED_ANUS",
@@ -49,16 +52,20 @@ class NudeNet:
         batch_size=5,
     ) -> list[dict]:
         """Detect objects in an image."""
+
         # Function to preprocess the image
         def preprocess_image(
             image_path,
             min_side,
             max_side,
         ):
-            image = np.ascontiguousarray(Image.fromarray(image_path))[:, :, ::-1]
+            image = np.ascontiguousarray(
+                Image.fromarray(image_path))[:, :, ::-1]
             image = image.astype(np.float32)
             image -= [103.939, 116.779, 123.68]
-            image, scale = resize_image(image, min_side=min_side, max_side=max_side)
+            image, scale = resize_image(image,
+                                        min_side=min_side,
+                                        max_side=max_side)
             return image, scale
 
         # Match size
@@ -66,10 +73,9 @@ class NudeNet:
 
         # Preprocess images
         preprocessed_images = [
-            preprocess_image(
-                img, min_side=480 if fast else 800, max_side=800 if fast else 1333
-            )
-            for img in images
+            preprocess_image(img,
+                             min_side=480 if fast else 800,
+                             max_side=800 if fast else 1333) for img in images
         ]
         # Show images
 
@@ -87,20 +93,21 @@ class NudeNet:
             )
 
             labels = [op for op in outputs if op.dtype == "int32"][0]
-            scores = [op for op in outputs if isinstance(op[0][0], np.float32)][0]  # type: ignore
-            boxes = [op for op in outputs if isinstance(op[0][0], np.ndarray)][0]
+            scores = [
+                op for op in outputs if isinstance(op[0][0], np.float32)
+            ][0]  # type: ignore
+            boxes = [op for op in outputs
+                     if isinstance(op[0][0], np.ndarray)][0]
             boxes /= scale
 
             for frame_boxes, frame_scores, frame_labels in zip(
-                boxes,
-                scores,
-                labels,
+                    boxes,
+                    scores,
+                    labels,
             ):
-                frame_result = {
-                    "detections": [],
-                    'is_nsfw':False
-                }
-                for box, score, label in zip(frame_boxes, frame_scores, frame_labels):
+                frame_result = {"detections": [], 'is_nsfw': False}
+                for box, score, label in zip(frame_boxes, frame_scores,
+                                             frame_labels):
                     if score < min_prob:
                         continue
                     box = box.astype(int).tolist()
@@ -112,7 +119,6 @@ class NudeNet:
                     }
                     frame_result["detections"].append(detection)
 
-                
                 is_nsfw = self._eval_detection(frame_result["detections"])
                 frame_result["is_nsfw"] = is_nsfw
                 results.append(frame_result)
@@ -128,7 +134,8 @@ class NudeNet:
             "EXPOSED_GENITALIA_M",
         ]
         for detection in result:
-            if detection["label"] in nsfw_labels and detection["score"] > threshold:
+            if detection[
+                    "label"] in nsfw_labels and detection["score"] > threshold:
                 return True
         return False
 

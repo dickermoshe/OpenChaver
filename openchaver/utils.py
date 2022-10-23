@@ -25,8 +25,12 @@ def is_frozen():
     logger.debug(f"Pyinstaller: {pyinstaller}, Nuitka: {nuitka}")
     return pyinstaller or nuitka
 
+
 def obfuscate_text(text: str):
-    """Obfuscate text by replaceing each character with the char next to it in the alphabet"""
+    """
+    Obfuscate text by replaceing each character
+    with the char next to it in the alphabet
+    """
     import string
     a = string.ascii_letters
     b = string.ascii_letters[-1] + string.ascii_letters[:-1]
@@ -73,11 +77,21 @@ def decode_base64_to_numpy(str: str) -> np.ndarray:
     return cv.imdecode(np.frombuffer(base64.b64decode(str), np.uint8), -1)
 
 
+def test_model(model_path: Path) -> bool:
+    """Test if a model can be loaded"""
+    import onnxruntime
+    try:
+        onnxruntime.InferenceSession(str(model_path),
+                                     providers=["CPUExecutionProvider"])
+        return True
+    except:  # noqa E722
+        logger.error("Failed to load model")
+        return False
+
+
 def download_model(url, path: Path, hash=None):
     """Download the model"""
     import requests
-    import onnxruntime
-    import oschmod
 
     logger.info("Downloading model...")
     try:
@@ -86,21 +100,17 @@ def download_model(url, path: Path, hash=None):
         with open(path, "wb") as handle:
             for data in response.iter_content(chunk_size=8192):
                 handle.write(data)
-        
+
         # Check hash
         if hash:
             if not chech_hash(path, hash):
                 raise Exception("Hash mismatch")
-        
-        # Set permissions
-        oschmod.set_mode(path, 'a+r')
 
         # Test Load model
-        onnxruntime.InferenceSession(
-            str(path), providers=["CPUExecutionProvider"]
-        )
+        if not test_model(path):
+            raise Exception("Failed to load model")
 
-    except:
+    except:  # noqa E722
         logger.error("Failed to download model")
         path.unlink(missing_ok=True)
         raise
@@ -128,7 +138,10 @@ def resize_image(img, min_side=800, max_side=1333):
 
 
 def match_size(images: list[np.ndarray]) -> list[np.ndarray]:
-    """Resize images to the size of the largest image by adding black borders"""
+    """
+    Resize images to the size of the largest
+    image by adding black borders
+"""
     import cv2 as cv
     max_width = max([img.shape[1] for img in images])
     max_height = max([img.shape[0] for img in images])
@@ -165,7 +178,7 @@ def is_profane(s: str) -> bool:
 def deblot_image(mask: np.ndarray, min_size: float):
     """Remove small blobs from an image."""
     import cv2 as cv
-    nb_blobs, im_with_separated_blobs, stats, _ = cv.connectedComponentsWithStats(
+    nb_blobs, im_with_separated_blobs, stats, _ = cv.connectedComponentsWithStats(  # noqa E501
         mask)
     sizes = stats[:, -1]
     sizes = sizes[1:]
@@ -185,12 +198,12 @@ def count_skin_pixels(image: np.ndarray):
     lower = np.array([0, 48, 80], dtype="uint8")
     upper = np.array([20, 255, 255], dtype="uint8")
     converted = cv.cvtColor(image, cv.COLOR_BGR2HSV)
-    skinMask = cv.inRange(converted, lower, upper)
+    skin_mask = cv.inRange(converted, lower, upper)
     kernel = cv.getStructuringElement(cv.MORPH_ELLIPSE, (11, 11))
-    skinMask = cv.erode(skinMask, kernel, iterations=2)
-    skinMask = cv.dilate(skinMask, kernel, iterations=2)
-    skinMask = deblot_image(skinMask, 250)
-    return np.sum(skinMask)
+    skin_mask = cv.erode(skin_mask, kernel, iterations=2)
+    skin_mask = cv.dilate(skin_mask, kernel, iterations=2)
+    skin_mask = deblot_image(skin_mask, 250)
+    return np.sum(skin_mask)
 
 
 def color_in_image(img: np.ndarray) -> bool:
@@ -215,47 +228,40 @@ def contains_skin(img: np.ndarray, thresh=1.5) -> bool:
     logger.debug(f"Skin ratio: {skin_ratio}")
     return skin_ratio > thresh
 
-def to_str(cmd:list):
+
+def to_str(cmd: list):
     output = []
     for i in cmd:
         if isinstance(i, list):
             output.extend(to_str(i))
         else:
             output.append(str(i).strip())
-    
+
     return output
 
-def get_idle_time()->int:
+
+def get_idle_time() -> int:
     """Return the time the user has been idle"""
     import os
     if os.name == 'nt':
         import win32api
-        
+
         try:
-            current =  win32api.GetTickCount() / 1000
-        except:
+            current = win32api.GetTickCount() / 1000
+        except:  # noqa E722
             current = 0
         try:
             last = win32api.GetLastInputInfo() / 1000
-        except:
+        except:  # noqa E722
             last = 0
         return current - last
 
-def restart_serivce():
-    from .const import SERVICE_NAME
-    import os
 
-    if os.name == 'nt':
-        import win32serviceutil
-        win32serviceutil.RestartService(SERVICE_NAME)
-
-
-
-def thread_runner(threads,die_event):
+def thread_runner(threads, die_event=None):
     # Create threads and start them
     import threading as th
     import time
-    
+
     for k in threads.keys():
         threads[k]["thread"] = th.Thread(
             target=threads[k]["target"],
@@ -276,9 +282,7 @@ def thread_runner(threads,die_event):
     while True:
         for k in threads.keys():
             if not threads[k]["thread"].is_alive():
-                logger.error(
-                    f'Thread "{threads[k]["target"].__name__}" is dead, restarting...'
-                )
+                logger.error(f'Thread "{k}" is dead, restarting...')
                 threads[k]["thread"] = th.Thread(
                     target=threads[k]["target"],
                     args=threads[k]["args"],
@@ -286,17 +290,8 @@ def thread_runner(threads,die_event):
                     daemon=threads[k]["daemon"],
                 )
                 threads[k]["thread"].start()
-        
+
         if die_event and die_event.is_set():
             break
 
         time.sleep(5)
-
-
-        
-
-
-
-
-
-

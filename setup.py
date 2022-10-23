@@ -1,31 +1,24 @@
 from setuptools import setup, find_packages
-from openchaver.__about__ import __version__
+from openchaver.__about__ import (__version__, __author__, __author_email__,
+                                  __license__, __url__)
 with open("README.md", "r", encoding="utf-8") as fh:
     long_description = fh.read()
 
 setup(
     name="openchaver_client",
     version=__version__,
-    author="Moshe Dicker",
-    author_email='mail@openchaver.com',
+    author=__author__,
+    author_email=__author_email__,
     description="An open source alternative to WebChaver.",
-    url='https://github.com/dickermoshe/OpenChaver',
-    license='GNU General Public License v3.0',
+    url=__url__,
+    license=__license__,
     long_description=long_description,
     long_description_content_type="text/markdown",
     install_requires=[
-        'alembic==1.8.1', 'banal==1.0.6', 'certifi==2022.9.24',
-        'charset-normalizer==2.1.1', 'click==8.1.3', 'colorama==0.4.5',
-        'coloredlogs==15.0.1', 'dataset==1.5.2', 'Flask==2.2.2',
-        'flatbuffers==22.9.24', 'greenlet==1.1.3.post0', 'humanfriendly==10.0',
-        'idna==3.4', 'itsdangerous==2.1.2', 'Jinja2==3.1.2', 'Mako==1.2.3',
-        'MarkupSafe==2.1.1', 'marshmallow==3.18.0', 'mpmath==1.2.1',
-        'mss==6.1.0', 'numpy==1.23.4', 'onnxruntime==1.12.1',
-        'opencv-python==4.6.0.66', 'oschmod==0.3.12', 'packaging==21.3',
-        'Pillow==9.2.0', 'protobuf==4.21.8', 'psutil==5.9.3',
-        'pyparsing==3.0.9', 'pyreadline3==3.4.1', 'pywin32==304',
-        'requests==2.28.1', 'SQLAlchemy==1.4.42', 'sympy==1.11.1',
-        'urllib3==1.26.12', 'Werkzeug==2.2.2'
+        'click==8.1.3', 'Flask==2.2.2', 'marshmallow==3.18.0', 'mss==6.1.0',
+        'numpy==1.23.4', 'onnxruntime==1.12.1', 'opencv_python==4.6.0.66',
+        'oschmod==0.3.12', 'peewee==3.15.3', 'Pillow==9.2.0', 'psutil==5.9.3',
+        'pywin32==304', 'requests==2.28.1'
     ],
     packages=find_packages(),
     entry_points={
@@ -39,5 +32,4 @@ setup(
         "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
         "Operating System :: Microsoft :: Windows",
     ],
-
 )

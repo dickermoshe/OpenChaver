@@ -1,24 +1,30 @@
-from .app import app
+import logging
 
-from ..const import LOCAL_SERVER_PORT
+from .app import run_app
 from ..utils import thread_runner
-from .watchdog import keep_alive
+from .watchdog import keep_monitor_alive
+from ..logger import handle_error
+
+logger = logging.getLogger(__name__)
+
+
+@handle_error
 def run_service():
-    SERVICES = {
+    services = {
         # Detect idle
         "idle_detection": {
-            "target": app.run,
-            "args": (),
-            "kwargs": dict(port=LOCAL_SERVER_PORT),
-            "daemon": True,
-        },
-        # Keep Monitor alive
-        "keep_alive": {
-            "target": keep_alive,
+            "target": run_app,
             "args": (),
             "kwargs": {},
             "daemon": True,
         },
-
+        # Keep Monitor alive
+        "keep_alive": {
+            "target": keep_monitor_alive,
+            "args": (),
+            "kwargs": {},
+            "daemon": True,
+        },
     }
-    thread_runner(SERVICES)
+    logger.info(f"Services - {services}")
+    thread_runner(services)

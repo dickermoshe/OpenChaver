@@ -44,6 +44,9 @@ Section "Installer"
 
     # Run the OpenChaver Setup
     ExecWait '"$INSTDIR\openchaver.exe" setup'
+    # Run twice to make sure the service is installed
+    Sleep 500
+    ExecWait '"$INSTDIR\openchaver.exe" setup'
 
 # default section end
 SectionEnd

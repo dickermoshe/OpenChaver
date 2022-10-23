@@ -1,2 +1,2 @@
-from .const import *
-from .logger import *
+from .const import *  # noqa
+from .logger import *  # noqa

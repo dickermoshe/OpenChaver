@@ -1,59 +1,55 @@
 import os
-if os.name ==   'nt' :
-    from ..const import BASE_EXE,MONITOR_ARGS
-    from ..utils import to_str
+from ..logger import handle_error
+import logging
+import time
+
+logger = logging.getLogger(__name__)
+if os.name == 'nt':
+    from ..const import MONITOR_COMMAND
     import psutil
     import win32ts
     import win32process
     import win32con
 
-    def monitor_is_running(username:str)->bool:
+    def monitor_is_running(username: str) -> bool:
         """Check if the monitor is on"""
-        command = to_str([BASE_EXE,MONITOR_ARGS])
         for proc in psutil.process_iter():
             try:
-                if proc.username() == username:
-                    if proc.cmdline() == command:
+                u = proc.username().split('\\')[-1]
+                if u == username:
+                    cmd = proc.cmdline()
+                    if cmd[-1] == 'runmonitor' and cmd[-2].endswith(
+                            ('openchaver.py', 'openchaver.exe')):
                         return True
-            except:
+            except:  # noqa: E722
                 pass
+        logger.info("Monitor is not running for user %s", username)
         return False
-        
-    def keep_alive():
+
+    @handle_error
+    def keep_monitor_alive(interval: int = 5):
         """Return a list of logged in users"""
+        while True:
+            for session in win32ts.WTSEnumerateSessions(
+                    win32ts.WTS_CURRENT_SERVER_HANDLE):
+                id = session['SessionId']
 
-        
-        command = ' '.join(to_str([BASE_EXE,MONITOR_ARGS]))
+                if id == 0:
+                    continue
 
-        for session in win32ts.WTSEnumerateSessions(win32ts.WTS_CURRENT_SERVER_HANDLE):
-            id = session['SessionId']
+                username = win32ts.WTSQuerySessionInformation(
+                    win32ts.WTS_CURRENT_SERVER_HANDLE, id, win32ts.WTSUserName)
 
-            if id == 0:
-                continue
+                if monitor_is_running(username):
+                    continue
 
-            username = win32ts.WTSQuerySessionInformation(
-                win32ts.WTS_CURRENT_SERVER_HANDLE,
-                id,
-                win32ts.WTSUserName
-            )
-            
-            if monitor_is_running(username):
-                continue
+                # Get the token of the logged in user
+                token = win32ts.WTSQueryUserToken(id)
 
-            # Get the token of the logged in user
-            token = win32ts.WTSQueryUserToken(id)
-
-            # Create a new process with the token of the logged in user
-            win32process.CreateProcessAsUser(
-                token,
-                None,
-                command,
-                None,
-                None,
-                0,
-                win32con.CREATE_NEW_CONSOLE,
-                None,
-                None,
-                win32process.STARTUPINFO()
-
-            )
+                win32process.CreateProcessAsUser(token, None, MONITOR_COMMAND,
+                                                 None, None, False,
+                                                 win32con.CREATE_NEW_CONSOLE,
+                                                 None, None,
+                                                 win32process.STARTUPINFO())
+                logger.info(f"Started monitor for {username}")
+            time.sleep(interval)

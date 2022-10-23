@@ -4,33 +4,28 @@ from pathlib import Path
 import oschmod
 from .utils import is_frozen
 
-TESTING = not is_frozen() # Is testing if not frozen
+TESTING = not is_frozen()  # Is testing if not frozen
 
 PROGRAM_NAME = "OpenChaver"
-SERVICE_NAME = "OpenChaver Service" if not TESTING else "OpenChaver Service (TESTING)"
+SERVICE_NAME = ("OpenChaver Service (TESTING)"
+                if TESTING else "OpenChaver Service")
 EXE_NAME = 'openchaver.exe' if os.name == 'nt' else 'openchaver'
 
 # Endpoints
 BASE_URL = "https://openchaver.com"
 API_BASE_URL = "https://api.openchaver.com"
 
-# AI Models
-DETECTION_MODEL_URL = 'https://pub-43a5d92b0b0b4908a9aec2a745986a23.r2.dev/detector_v2_default_checkpoint.onnx'
-DETECTION_MODEL_SHA256_HASH = "D4BE1C504BE61851D9745E6DA8FA09455EB39B8856626DD6B5CA413C9E8B1578" 
-CLASSIFICATION_MODEL_URL = 'https://pub-43a5d92b0b0b4908a9aec2a745986a23.r2.dev/open-nsfw.onnx'
-CLASSIFICATION_MODEL_SHA256_HASH = "864BB37BF8863564B87EB330AB8C785A79A773F4E7C43CB96DB52ED8611305FA"
-
 # Port of local server
-LOCAL_SERVER_PORT = 61195 
-
+LOCAL_SERVER_PORT = 61195
 
 # Dirs
 if TESTING:
-    INSTALL_DIR = Path(__file__).parent.parent # Root of the project
+    INSTALL_DIR = Path(__file__).parent.parent  # Root of the project
     SYSTEM_DATA_DIR = Path(__file__).parent.parent / "system_data"
     USER_DATA_DIR = Path(__file__).parent.parent / "user_data"
 elif os.name == 'nt':
-    INSTALL_DIR = Path(os.path.expandvars('%ProgramFiles(x86)%')) / PROGRAM_NAME
+    INSTALL_DIR = Path(
+        os.path.expandvars('%ProgramFiles(x86)%')) / PROGRAM_NAME
     SYSTEM_DATA_DIR = Path(os.path.expandvars('%ProgramData%')) / PROGRAM_NAME
     USER_DATA_DIR = Path(os.getenv('APPDATA')) / PROGRAM_NAME
 else:
@@ -38,7 +33,7 @@ else:
     exit(1)
 
 # Where AI models are stored
-MODEL_DIR = SYSTEM_DATA_DIR / "nsfw_model"
+MODEL_DIR = USER_DATA_DIR / "nsfw_model"
 
 # Where the Config file is stored
 DATABASE_DIR = SYSTEM_DATA_DIR / 'db'
@@ -54,33 +49,45 @@ if not DATABASE_DIR.exists():
     try:
         DATABASE_DIR.mkdir(parents=True, exist_ok=True)
         oschmod.set_mode(str(DATABASE_DIR), 'a+rwx')
-    except:
-        pass # This is OK, the service will have privileges to create the dir
+    except:  # noqa: E722
+        pass  # This is OK, the service will have privileges to create the dir
 
 if not MODEL_DIR.exists():
     try:
         MODEL_DIR.mkdir(parents=True, exist_ok=True)
         oschmod.set_mode(str(MODEL_DIR), 'a+rwx')
-    except:
-        pass # This is OK, the service will have privileges to create the dir
-
-
+    except:  # noqa: E722
+        pass  # This is OK, the service will have privileges to create the dir
 
 LOG_FILE = LOG_DIR / 'openchaver.log'
 DB_PATH = DATABASE_DIR / 'database.db'
 
-
-# STARTUP_FOLDER = Path(os.path.expandvars('%ProgramData%')) / 'Microsoft' / 'Windows' / 'Start Menu' / 'Programs' / 'Startup'
-
 if TESTING:
     BASE_EXE = Path(sys.executable)
-    SERVICES_ARGS = [ SYSTEM_DATA_DIR.parent / "openchaver.py" , "runservice" ]
-    MONITOR_ARGS = [ SYSTEM_DATA_DIR.parent / "openchaver.py" , "runmonitor" ]
+    SERVICES_ARGS = f'"{SYSTEM_DATA_DIR.parent / "openchaver.py"}" runservice'
+    SERVICE_COMMAND = f'"{BASE_EXE}" {SERVICES_ARGS}'
+    MONITOR_ARGS = f'"{SYSTEM_DATA_DIR.parent / "openchaver.py"}" runmonitor'
+    MONITOR_COMMAND = f'"{BASE_EXE}" {MONITOR_ARGS}'
+    MONITOR_COMMAND_LIST = [
+        str(BASE_EXE),
+        str(SYSTEM_DATA_DIR.parent / "openchaver.py"), "runmonitor"
+    ]
 else:
     BASE_EXE = INSTALL_DIR / 'openchaver.exe'
-    SERVICES_ARGS = [ "runservice" ]
-    MONITOR_ARGS =[ "runmonitor" ]
+    SERVICES_ARGS = 'runservice'
+    SERVICE_COMMAND = f'"{BASE_EXE}" {SERVICES_ARGS}'
+    MONITOR_ARGS = 'runmonitor'
+    MONITOR_COMMAND = f'"{BASE_EXE}" {MONITOR_ARGS}'
+    MONITOR_COMMAND_LIST = [str(BASE_EXE), "runmonitor"]
 
+# AI Models
+DETECTION_MODEL_URL = 'https://pub-43a5d92b0b0b4908a9aec2a745986a23.r2.dev/detector_v2_default_checkpoint.onnx'  # noqa: E501
+DETECTION_MODEL_SHA256_HASH = "D4BE1C504BE61851D9745E6DA8FA09455EB39B8856626DD6B5CA413C9E8B1578"  # noqa: E501
+DETECTION_MODEL_PATH = MODEL_DIR / 'detector_v2_default_checkpoint.onnx'
+
+CLASSIFICATION_MODEL_URL = 'https://pub-43a5d92b0b0b4908a9aec2a745986a23.r2.dev/open-nsfw.onnx'  # noqa: E501
+CLASSIFICATION_MODEL_SHA256_HASH = "864BB37BF8863564B87EB330AB8C785A79A773F4E7C43CB96DB52ED8611305FA"  # noqa: E501
+CLASSIFICATION_MODEL_PATH = MODEL_DIR / 'open-nsfw.onnx'
 
 # Bad Words for profanity filter
 BAD_WORDS = [

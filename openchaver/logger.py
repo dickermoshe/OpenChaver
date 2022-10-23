@@ -1,4 +1,3 @@
-from asyncio.log import logger
 import logging
 from logging.config import dictConfig
 
@@ -9,7 +8,7 @@ dictConfig({
     'formatters': {
         'default': {
             'format':
-            '%(asctime)s - %(name)s -> %(funcName)s  %(levelname)s - %(message)s',
+            '%(asctime)s - %(name)s -> %(funcName)s  %(levelname)s - %(message)s',  # noqa: E501
         }
     },
     'handlers': {
@@ -41,16 +40,21 @@ dictConfig({
             'handlers': ['file', 'console'],
             'propagate': True
         }
-}})
+    }
+})
 
 logger = logging.getLogger('openchaver')
+
 
 def handle_error(func):
 
     def __inner(*args, **kwargs):
+        # Set the attribute to the function name
+        __inner.__name__ = func.__name__
+
         try:
             return func(*args, **kwargs)
-        except:
+        except:  # noqa: E722
             logger.exception(f"Exception in {func.__name__}")
             raise
 
