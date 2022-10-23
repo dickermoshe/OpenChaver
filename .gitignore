@@ -193,3 +193,5 @@ _utils/
 
 temp_data/
 system_data/
+
+*.onnx
