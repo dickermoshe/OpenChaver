@@ -24,7 +24,7 @@ TODO:
 - [ ] Create the update script that will update the application.
 - [ ] Create the documentation for the application.
 - [ ] Create the tests for the application.
-- [ ] Create the watchdog for the application.
+- [x] Create the watchdog for the application.
 
 
 As you can see, there is a lot to do. If you want to help, please contact me.
@@ -38,12 +38,7 @@ python -m venv venv
 venv\Scripts\activate
 pip install openchaver_client
 
-
-# To run the services
-openchaver services     # Server and Watchdog
-
-
-# To run the monitor
-openchaver monitor      # Monitor and Upload
+# To run the application
+openchaver setup
 ```
 

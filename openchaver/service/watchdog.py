@@ -59,8 +59,7 @@ if os.name == 'nt':
     def keep_watcher_alive():
         """This function Keeps the OpenChaver Watcher running"""
 
-    logger.info("Starting the OpenChaver Watcher")
-    while True:
-        start_service_if_stopped(WATCHER_NAME)
-        logger.info("OpenChaver Watcher is running")
-        time.sleep(10)
+        logger.info("Starting the OpenChaver Watcher")
+        while True:
+            start_service_if_stopped(WATCHER_NAME)
+            time.sleep(10)

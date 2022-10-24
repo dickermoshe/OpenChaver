@@ -117,7 +117,7 @@ def run_app():
                            method='POST',
                            data=screenshot)
         if status:
-            screenshot_table.delete(id)
+            screenshot_table.delete(id=id)
             app.logger.info(f'Uploaded screenshot: {id}')
             return jsonify({'success': True})
         else:

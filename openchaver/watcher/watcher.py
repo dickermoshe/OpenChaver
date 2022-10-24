@@ -13,5 +13,4 @@ def run_watcher():
     logger.info("Starting the OpenChaver Watcher")
     while True:
         start_service_if_stopped(SERVICE_NAME)
-        logger.info("OpenChaver Service is running")
         time.sleep(10)

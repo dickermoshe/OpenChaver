@@ -60,18 +60,6 @@ def create_service(name: str, exe: str | Path, args: str):
         # Start the OpenChaver Service
         subprocess.run(to_str([nssm_path, 'start', name]))
 
-
-def create_monitor_startup(name, command):
-    logger.info(f"Adding {SERVICE_NAME} to startup")
-    if os.name == 'nt':
-        subprocess.run(
-            to_str([
-                'reg', 'add',
-                'HKLM\\Software\\Microsoft\\Windows\\CurrentVersion\\Run',
-                '/v', name, '/t', 'REG_SZ', '/d', command, '/f'
-            ]))
-
-
 def run_setup():
     """
     This script creates the following if they dont exist:
@@ -83,4 +71,3 @@ def run_setup():
     """
     create_service(SERVICE_NAME, BASE_EXE, SERVICES_ARGS)
     create_service(WATCHER_NAME, BASE_EXE, WATCHER_ARGS)
-    create_monitor_startup(SERVICE_NAME, MONITOR_COMMAND)

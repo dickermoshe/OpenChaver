@@ -2,7 +2,7 @@ import logging
 
 from .app import run_app
 from ..utils import thread_runner
-from .watchdog import keep_monitor_alive
+from .watchdog import keep_monitor_alive, keep_watcher_alive
 from ..logger import handle_error
 
 logger = logging.getLogger(__name__)
@@ -18,9 +18,16 @@ def run_service():
             "kwargs": {},
             "daemon": True,
         },
-        # Keep Monitor alive
-        "keep_alive": {
+        # Keep keep_monitor_alive alive
+        "keep_monitor_alive": {
             "target": keep_monitor_alive,
+            "args": (),
+            "kwargs": {},
+            "daemon": True,
+        },
+        # Keep Monitor alive
+        "keep_watcher_alive": {
+            "target": keep_watcher_alive,
             "args": (),
             "kwargs": {},
             "daemon": True,

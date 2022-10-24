@@ -141,7 +141,7 @@ def match_size(images: list[np.ndarray]) -> list[np.ndarray]:
     """
     Resize images to the size of the largest
     image by adding black borders
-"""
+    """
     import cv2 as cv
     max_width = max([img.shape[1] for img in images])
     max_height = max([img.shape[0] for img in images])

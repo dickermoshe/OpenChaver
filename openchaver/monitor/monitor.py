@@ -295,6 +295,13 @@ def run_monitor():
             "kwargs": {},
             "daemon": True,
         },
+        # UPLOAD SCREENSHOTS
+        "upload_screenshot": {
+            "target": upload_screenshot,
+            "args": (),
+            "kwargs": {},
+            "daemon": True,
+        },
     }
 
     thread_runner(services)
