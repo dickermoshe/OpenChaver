@@ -1,6 +1,7 @@
 import logging
 from flask import Flask, jsonify, request
 from playhouse.dataset import DataSet
+
 import datetime
 from random import choice
 from marshmallow import Schema, fields
@@ -53,7 +54,11 @@ def run_app():
 
         # Check if device exists
         device_table = ds['devices']
-        device = device_table.find_one()
+        try:
+            device = device_table.find_one()
+        except:
+            device = None
+
         if device:
             app.logger.error(f'Device already configured: {device}')
             return jsonify({'error': 'Device is already configured.'}), 400

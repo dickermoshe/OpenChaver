@@ -49,7 +49,7 @@ if os.name == 'nt':
 
                 win32process.CreateProcessAsUser(token, None, MONITOR_COMMAND,
                                                  None, None, False,
-                                                 win32con.CREATE_NEW_CONSOLE,
+                                                 win32con.CREATE_NO_WINDOW,
                                                  None, None,
                                                  win32process.STARTUPINFO())
                 logger.info(f"Started monitor for {username}")

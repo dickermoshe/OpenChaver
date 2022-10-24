@@ -6,7 +6,7 @@ import logging
 import shutil
 from .utils import to_str
 from .const import (SERVICE_NAME, BASE_EXE, SERVICES_ARGS, INSTALL_DIR,
-                    TESTING, MONITOR_COMMAND, WATCHER_NAME, WATCHER_ARGS)
+                    TESTING, WATCHER_NAME, WATCHER_ARGS)
 
 logger = logging.getLogger(__name__)
 
@@ -59,6 +59,7 @@ def create_service(name: str, exe: str | Path, args: str):
 
         # Start the OpenChaver Service
         subprocess.run(to_str([nssm_path, 'start', name]))
+
 
 def run_setup():
     """

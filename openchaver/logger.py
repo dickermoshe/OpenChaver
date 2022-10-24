@@ -1,6 +1,6 @@
 import logging
 from logging.config import dictConfig
-
+logging.StreamHandler
 from .const import LOG_FILE
 
 dictConfig({
@@ -12,11 +12,6 @@ dictConfig({
         }
     },
     'handlers': {
-        'wsgi': {
-            'class': 'logging.StreamHandler',
-            'stream': 'ext://flask.logging.wsgi_errors_stream',
-            'formatter': 'default'
-        },
         'file': {
             'class': 'logging.handlers.RotatingFileHandler',
             'filename': LOG_FILE,
@@ -29,10 +24,6 @@ dictConfig({
             'class': 'logging.StreamHandler',
             'formatter': 'default'
         },
-    },
-    'root': {
-        'level': 'INFO',
-        'handlers': ['wsgi']
     },
     'loggers': {
         'openchaver': {
