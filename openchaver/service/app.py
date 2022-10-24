@@ -1,5 +1,6 @@
 import logging
 from flask import Flask, jsonify, request
+from flask_cors import CORS
 from playhouse.dataset import DataSet
 
 import datetime
@@ -22,6 +23,7 @@ def run_app():
     ds.close()
 
     app = Flask(__name__)
+    CORS(app)
 
     class ConfigureRequest(Schema):
         device_id = fields.UUID(required=True)
