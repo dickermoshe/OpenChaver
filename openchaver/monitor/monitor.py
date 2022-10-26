@@ -63,7 +63,7 @@ def random_scheduler(event: th.Event, interval: int | list[int] = [60, 300]):
 def usage_scheduler(
     event: th.Event,
     reset_interval: int = 300,
-    stable_time: int = 10,
+    stable_time: int = 7,
 ):
     """
     This Thread will send an event to the screenshot
@@ -219,6 +219,7 @@ def upload_screenshot(interval: int = 60):
             r = requests.get(f"http://localhost:{LOCAL_SERVER_PORT}/upload")
             assert r.status_code == 200
         except:  # noqa: E722
+            logger.info(f"{r.status_code} {r.text}")
             logger.exception("Error uploading screenshot")
         time.sleep(interval)
 
