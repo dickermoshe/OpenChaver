@@ -166,8 +166,9 @@ def match_size(images: list[np.ndarray]) -> list[np.ndarray]:
 def is_profane(s: str) -> bool:
     import re
     from .const import BAD_WORDS
+    
     if re.compile(
-            r"\b" + r"\b|".join(BAD_WORDS) + r"\b",
+            r"\b" + r"\b|\b".join(BAD_WORDS) + r"\b",
             re.IGNORECASE,
     ).search(s):
         return True
