@@ -64,12 +64,15 @@ if not MODEL_DIR.exists():
 
 LOG_FILE = LOG_DIR / 'openchaver.log'
 DB_PATH = DATABASE_DIR / 'database.db'
+WATCHER_LOGS = INSTALL_DIR / 'watcher.log'
+SERVICE_LOGS = INSTALL_DIR / 'service.log'
 
 if TESTING:
     BASE_EXE = Path(sys.executable)
 
-    SERVICES_ARGS = f'"{SYSTEM_DATA_DIR.parent / "openchaver.py"}" runservice'
-    SERVICE_COMMAND = f'"{BASE_EXE}" {SERVICES_ARGS}'
+    SERVICE_ARGS = f'"{SYSTEM_DATA_DIR.parent / "openchaver.py"}" runservice'
+    SERVICE_COMMAND = f'"{BASE_EXE}" {SERVICE_ARGS}'
+
 
     MONITOR_ARGS = f'"{SYSTEM_DATA_DIR.parent / "openchaver.py"}" runmonitor'
     MONITOR_COMMAND = f'"{BASE_EXE}" {MONITOR_ARGS}'
@@ -82,8 +85,9 @@ if TESTING:
 else:
     BASE_EXE = INSTALL_DIR / 'openchaver.exe'
 
-    SERVICES_ARGS = 'runservice'
-    SERVICE_COMMAND = f'"{BASE_EXE}" {SERVICES_ARGS}'
+    SERVICE_ARGS = 'runservice'
+    SERVICE_LOGS = INSTALL_DIR / 'service.log'
+    SERVICE_COMMAND = f'"{BASE_EXE}" {SERVICE_ARGS}'
 
     MONITOR_ARGS = 'runmonitor'
     MONITOR_COMMAND = f'"{BASE_EXE}" {MONITOR_ARGS}'
@@ -92,14 +96,21 @@ else:
     WATCHER_ARGS = 'runwatcher'
     WATCHER_COMMAND = f'"{BASE_EXE}" {WATCHER_ARGS}'
 
+
 # AI Models
 DETECTION_MODEL_URL = 'https://pub-43a5d92b0b0b4908a9aec2a745986a23.r2.dev/detector_v2_default_checkpoint.onnx'  # noqa: E501
 DETECTION_MODEL_SHA256_HASH = "D4BE1C504BE61851D9745E6DA8FA09455EB39B8856626DD6B5CA413C9E8B1578"  # noqa: E501
-DETECTION_MODEL_PATH = MODEL_DIR / 'detector_v2_default_checkpoint.onnx'
+DETECTION_MODEL_PATH = MODEL_DIR / 'detect.onnx'
 
 CLASSIFICATION_MODEL_URL = 'https://pub-43a5d92b0b0b4908a9aec2a745986a23.r2.dev/open-nsfw.onnx'  # noqa: E501
 CLASSIFICATION_MODEL_SHA256_HASH = "864BB37BF8863564B87EB330AB8C785A79A773F4E7C43CB96DB52ED8611305FA"  # noqa: E501
-CLASSIFICATION_MODEL_PATH = MODEL_DIR / 'open-nsfw.onnx'
+CLASSIFICATION_MODEL_PATH = MODEL_DIR / 'classify.onnx'
+
+#Delete rotated services logs
+for log in INSTALL_DIR.glob('*.log'):
+    if log != LOG_FILE and log != WATCHER_LOGS and log != SERVICE_LOGS:
+        log.unlink()
+
 
 # Bad Words for profanity filter
 BAD_WORDS = [

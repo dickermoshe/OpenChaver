@@ -195,3 +195,6 @@ temp_data/
 system_data/
 
 *.onnx
+
+# Rotating log files
+*.log.*

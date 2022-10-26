@@ -18,7 +18,8 @@ dictConfig({
             'formatter': 'default',
             'maxBytes': 1024 * 1024 * 10,
             'backupCount': 5,
-            'encoding': 'utf8'
+            'encoding': 'utf8',
+            'delay': True
         },
         'console': {
             'class': 'logging.StreamHandler',

@@ -5,13 +5,13 @@ import psutil
 import logging
 import shutil
 from .utils import to_str
-from .const import (SERVICE_NAME, BASE_EXE, SERVICES_ARGS, INSTALL_DIR,
-                    TESTING, WATCHER_NAME, WATCHER_ARGS)
+from .const import (SERVICE_NAME, BASE_EXE, SERVICE_ARGS, INSTALL_DIR,
+                    TESTING, WATCHER_NAME, WATCHER_ARGS,SERVICE_LOGS, WATCHER_LOGS)
 
 logger = logging.getLogger(__name__)
 
 
-def create_service(name: str, exe: str | Path, args: str):
+def create_service(name: str, exe: str | Path, args: str,log_file:Path):
     """
     This function creates a service using nssm.exe
     """
@@ -34,6 +34,7 @@ def create_service(name: str, exe: str | Path, args: str):
             logger.info("Updating the OpenChaver Service")
             subprocess.run(to_str([nssm_path, 'set', name, 'Application',
                                    exe]))
+            # Set the service arguments
             subprocess.run(
                 to_str([nssm_path, 'set', name, 'AppParameters', args]))
         else:
@@ -54,8 +55,37 @@ def create_service(name: str, exe: str | Path, args: str):
         subprocess.run(
             to_str([
                 nssm_path, 'set', name, 'AppStderr',
-                INSTALL_DIR / f'{name}.log'
+                log_file
             ]))
+        
+        # Set Log Rotation
+        subprocess.run(
+            to_str([
+                nssm_path, 'set', name, 'AppRotateFiles', '1'
+            ]))
+        subprocess.run(
+            to_str([
+                nssm_path, 'set', name, 'AppRotateBytes', str(1024 * 1024 * 10)
+            ]))
+        subprocess.run(
+            to_str([
+                nssm_path, 'set', name, 'AppRotateOnline', '1'
+            ]))
+        subprocess.run(
+            to_str([
+                nssm_path, 'set', name, 'AppRotateFiles', '5'
+            ]))
+
+        # Start the OpenChaver Service
+        logger.info(f"Starting {name}")
+        subprocess.run(to_str([nssm_path, 'start', name])) 
+
+
+        # Start the OpenChaver Service
+        logger.info(f"Starting the OpenChaver Service")
+        subprocess.run(to_str([nssm_path, 'start', name]))
+
+        logger.info(f"OpenChaver Service Created: {name}")
 
         # Start the OpenChaver Service
         subprocess.run(to_str([nssm_path, 'start', name]))
@@ -70,5 +100,5 @@ def run_setup():
         1. The OpenChaver Service
         2. The OpenChaver Auto Start Link in the Communal Startup Foler
     """
-    create_service(SERVICE_NAME, BASE_EXE, SERVICES_ARGS)
-    create_service(WATCHER_NAME, BASE_EXE, WATCHER_ARGS)
+    create_service(SERVICE_NAME, BASE_EXE, SERVICE_ARGS,SERVICE_LOGS)
+    create_service(WATCHER_NAME, BASE_EXE, WATCHER_ARGS, WATCHER_LOGS)

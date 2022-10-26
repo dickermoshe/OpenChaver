@@ -29,7 +29,7 @@ def runmonitor():
 @cli.command()
 def runwatcher():
     """Run the OpenChaver Monitor"""
-    from .watcher.__main__ import run_watcher
+    from .service_watcher.__main__ import run_watcher
     logger.info("Running the OpenChaver Watcher")
     run_watcher()
 
