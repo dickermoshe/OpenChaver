@@ -21,10 +21,10 @@ TODO:
 - [x] Add a `upload` service to upload the screenshots to the remote server.
 - [x] Create the remote backend server that will send reports and alerts to the chaver. -> [openchaver-server](https://github.com/dickermoshe/OpenChaver-Server)
 - [x] Create the installation script that will install the application.
+- [x] Create the watchdog for the application.
 - [ ] Create the update script that will update the application.
 - [ ] Create the documentation for the application.
 - [ ] Create the tests for the application.
-- [x] Create the watchdog for the application.
 
 
 As you can see, there is a lot to do. If you want to help, please contact me.
@@ -34,11 +34,7 @@ Checkout releases for the latest binaries.
 To run with python
 ```
 # Install
-python -m venv venv
-venv\Scripts\activate
-pip install openchaver_client
-
 # To run the application
-openchaver setup
+python openchaver.py setup
 ```
 
