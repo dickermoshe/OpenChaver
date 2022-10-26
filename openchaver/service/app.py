@@ -1,4 +1,5 @@
 import logging
+import time
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 from playhouse.dataset import DataSet
@@ -113,23 +114,30 @@ def run_app():
             app.logger.error('Device is not configured')
             return jsonify({'error': 'Device is not configured.'}), 400
 
-        if not screenshot_table.find_one():
-            app.logger.info('No screenshots to upload')
-            return jsonify({'success': True})
+        while True:
+            if not screenshot_table.find_one():
+                app.logger.info('No screenshots to upload')
+                return jsonify({'success': True})
 
-        # Get a random single screenshot
-        screenshot = dict(choice(screenshot_table.all()))
-        id = screenshot.pop('id')
-        status, json = api(f'/devices/{device_id}/add_screenshot/',
-                           method='POST',
-                           data=screenshot)
-        if status:
-            screenshot_table.delete(id=id)
-            app.logger.info(f'Uploaded screenshot: {id}')
-            return jsonify({'success': True})
-        else:
-            app.logger.error(f'Could not upload screenshot: {id} - {json}')
-            return jsonify(json), 400
+            # Get a random single screenshot
+            screenshot = dict(choice(screenshot_table.all()))
+            id = screenshot.pop('id')
+
+            if not len(screenshot['title']):
+                screenshot['title'] = 'Uknown title'
+            if not len(screenshot['exec_name']):
+                screenshot['exec_name'] = 'Uknown Executable'
+
+            status, json = api(f'/devices/{device_id}/add_screenshot/',
+                            method='POST',
+                            data=screenshot)
+            if status:
+                screenshot_table.delete(id=id)
+                app.logger.info(f'Uploaded screenshot: {id}')
+            else:
+                app.logger.error(f'Could not upload screenshot: {id} - {json}')
+            
+            time.sleep(1)
 
     @app.route('/cleanup', methods=['GET'])
     def cleanup():
