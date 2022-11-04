@@ -1,15 +1,5 @@
 # OpenChaver  
 
-```
-# Run the services
-python openchaver.py
-
-OR
-
-# Build an Executable
-python -m nuitka .\openchaver.py --standalone --output-dir=build --enable-plugin=numpy
-```
-
 TODO:
 - [x] `scheduler` - Sends events to the `screenshot` service.
 - [x] `screenshot` - Takes screenshots of the active window. Sends the screenshot to the `storage` service.
@@ -19,7 +9,9 @@ TODO:
 - [x] Create the uninstallation script that will uninstall the application.
 - [x] ~~Create the configuration script that will configure the application.~~ (Done by Website)
 - [x] Add a `upload` service to upload the screenshots to the remote server.
-- [x] Create the remote backend server that will send reports and alerts to the chaver. -> [openchaver-server](https://github.com/dickermoshe/OpenChaver-Server)
+- [x] ~~Create the remote backend server that will send reports and alerts to the chaver. -> [openchaver-server](https://github.com/dickermoshe/OpenChaver-Server)~~ (Local Only)
+- [ ] Create UI
+- [ ] Create Taskbar Icon
 - [x] Create the installation script that will install the application.
 - [x] Create the watchdog for the application.
 - [ ] Create the update script that will update the application.
@@ -29,12 +21,10 @@ TODO:
 
 As you can see, there is a lot to do. If you want to help, please contact me.
 
-Checkout releases for the latest binaries.
-
 To run with python
 ```
 # Install
 # To run the application
-python openchaver.py setup
+python manage.py setup
 ```
 
