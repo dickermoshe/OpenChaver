@@ -38,11 +38,19 @@ class Screenshot(models.Model):
         if self.base64_image:
             return decode_base64_to_numpy(self.base64_image)
 
+    
+
     def run_nsfw_detection(self):
-        if self.base64_image is None or self.is_nsfw is not None:
+        if self.base64_image is None:
             self.is_nsfw = False
             self.save()
             return
+        
+        if self.is_nsfw is not None:
+            self.is_nsfw = False
+            self.save()
+            return
+
 
         image = self.image
         sub_images = []
