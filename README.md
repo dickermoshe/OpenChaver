@@ -7,7 +7,7 @@ Python 3.10
 pip install -r requirements.txt
 python manage.py setup
 
-Login to http://127.0.0.1:61313
+Login to http://127.0.0.1:61313/admin
 User:     admin
 Password: pass
 
