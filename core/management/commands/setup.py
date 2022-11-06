@@ -38,6 +38,15 @@ def create_service(name: str, exe: str | Path, args: str, log_file: Path):
     logger.info("Migrating the database")
     subprocess.run(MIGRATE_COMMAND)
 
+    # Make Superuser
+    if TESTING:
+        from django.contrib.auth.models import User
+        try:
+            User.objects.create_superuser('admin', 'admin@example.com', 'pass')
+        except Exception as e:
+            logger.exception(e)
+
+
     if os.name == "nt":
         logger.info(f"Creating the OpenChaver Service: {name}")
 
