@@ -1,5 +1,18 @@
 # OpenChaver  
 
+
+
+```
+Python 3.10
+pip install -r requirements.txt
+python manage.py setup
+
+Login to http://127.0.0.1:61313
+User:     admin
+Password: pass
+
+```
+
 TODO:
 
 - [ ] Create the uninstallation script that will uninstall the application.
@@ -10,12 +23,9 @@ TODO:
 - [ ] Create the documentation for the application.
 - [ ] Create the tests for the application.
 
-
 As you can see, there is a lot to do. If you want to help, please contact me.
 
-To run with python
-```
-pip install -r requirements.txt
-python manage.py setup
-```
+
+
+
 
