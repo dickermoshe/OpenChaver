@@ -1,5 +1,0 @@
-__version__ = '0.5.0'
-__author__ = 'Moshe Dicker'
-__author_email__ = 'mail@openchaver.com'
-__license__ = 'GNU General Public License v3.0'
-__url__ = 'https://github.com/dickermoshe/OpenChaver'
