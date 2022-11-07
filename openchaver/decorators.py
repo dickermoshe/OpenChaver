@@ -2,6 +2,7 @@ import functools
 import logging
 import time
 
+logger = logging.getLogger(__name__)
 
 def restart_on_exception(f, delay=1, exception=Exception):  # pragma: no cover
     @functools.wraps(f)
@@ -10,7 +11,7 @@ def restart_on_exception(f, delay=1, exception=Exception):  # pragma: no cover
             try:
                 f(*args, **kwargs)
             except exception:
-                logging.exception(f"{f.__name__} crashed due to exception, restarting.")
+                logger.exception(f"{f.__name__} crashed due to exception, restarting.")
                 time.sleep(
                     delay
                 )  # To prevent extremely fast restarts in case of bad state.
@@ -26,7 +27,7 @@ def handle_error(func):
         try:
             return func(*args, **kwargs)
         except:  # noqa: E722
-            logging.exception(f"Exception in {func.__name__}")
+            logger.exception(f"Exception in {func.__name__}")
             raise
 
     return __inner

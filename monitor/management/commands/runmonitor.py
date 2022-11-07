@@ -3,6 +3,7 @@
 
 from django.core.management.base import BaseCommand
 from monitor.monitor_windows import run_monitor
+from monitor.cleaner import run_cleaner
 from openchaver.utils import thread_runner
 
 class Command(BaseCommand):
@@ -13,6 +14,13 @@ class Command(BaseCommand):
             # Monitor
             "Monitor": {
                 "target": run_monitor,
+                "args": (),
+                "kwargs": {},
+                "daemon": True,
+            },
+            # Cleaner
+            "Cleaner": {
+                "target": run_cleaner,
                 "args": (),
                 "kwargs": {},
                 "daemon": True,

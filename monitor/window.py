@@ -5,8 +5,9 @@ import time
 import numpy as np
 import cv2 as cv
 import mss
+from io import BytesIO
 
-from core.image_utils import encode_numpy_to_base64
+from core.image_utils import encode_numpy_to_base64, numpy_to_png_bytes
 
 # Logger
 logger = logging.getLogger(__name__)
@@ -48,7 +49,7 @@ class WindowBase:
     def __repr__(self):
         return self.title
 
-    def take_screenshot(self) -> str:
+    def take_screenshot(self) -> bytes:
         """Get a screenshot of the window"""
 
         # Get the coordinates of the window
@@ -65,7 +66,15 @@ class WindowBase:
             scale = self.dpi / self.DEFAULT_DPI
             image = cv.resize(image, None, fx=scale, fy=scale)
 
-        return encode_numpy_to_base64(image)
+        png_bytes = numpy_to_png_bytes(image)
+        
+        # Return a bufffed reader for a post requests file upload
+        return png_bytes
+
+        
+
+
+
 
     def stable_check(self) -> None:
         """Check if the window is stable"""

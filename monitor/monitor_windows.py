@@ -1,5 +1,6 @@
 import time
 import requests
+from uuid import uuid4
 import logging
 from openchaver.decorators import handle_error
 from .afk import seconds_since_last_input
@@ -32,18 +33,22 @@ class WindowMonitor:
     @handle_error
     def upload_screenshot(self, window: Window, screenshot_type="META"):
         """Upload the screenshot to the server"""
+        png_bytes = window.take_screenshot() if screenshot_type in ["IMAGE", "NSFW", "NSFW_IMAGE", "NSFW_META"] else None
         data = {
             "title": window.title,
             "excutable_name": window.exec_name,
-            "base64_image": window.take_screenshot()
-            if screenshot_type in ["IMAGE", "NSFW", "NSFW_IMAGE", "NSFW_META"]
-            else None,
             "screenshot_type": screenshot_type,
         }
+        # Set the image name to the window title
+        files = {"image_file": (f'{uuid4}.png', png_bytes, "image/png")} if png_bytes else None
+
         response = requests.post(
-            f"http://localhost:{PORT}/api/screenshots/", json=data
-        )
-        response.raise_for_status()
+            f"http://localhost:{PORT}/api/screenshots/", data=data, files=files)
+        try:
+            response.raise_for_status()
+        except requests.exceptions.HTTPError as e:
+            logger.error(e)
+            logger.error(response.text)
 
 
 

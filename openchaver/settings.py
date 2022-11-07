@@ -123,6 +123,8 @@ USE_TZ = True
 
 STATIC_URL = "static/"
 STATIC_ROOT = get_install_dir() / "static"
+MEDIA_URL = "media/"
+MEDIA_ROOT = get_install_dir() / "media"
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.1/ref/settings/#default-auto-field
@@ -154,7 +156,7 @@ LOGGING = {
     },
     "loggers": {
         "django": {
-            "handlers": ["console"],
+            "handlers": ["console", "file"],
             "level": "INFO",
         },
         'core': {
@@ -174,6 +176,12 @@ LOGGING = {
 
 REST_FRAMEWORK = {
     'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
+    # add multipart/form-data support
+    'DEFAULT_PARSER_CLASSES': [
+        'rest_framework.parsers.JSONParser',
+        'rest_framework.parsers.MultiPartParser',
+        
+    ],
 }
 
 SPECTACULAR_SETTINGS = {

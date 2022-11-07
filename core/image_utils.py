@@ -22,6 +22,20 @@ def decode_base64_to_numpy(str: str) -> np.ndarray:
 
     return cv.imdecode(np.frombuffer(base64.b64decode(str), np.uint8), -1)
 
+def numpy_to_png_bytes(img: np.ndarray) -> bytes:
+    """Convert a numpy array to a png image"""
+    import cv2 as cv
+    _, buffer = cv.imencode(".png", img)
+    return buffer.tobytes()
+
+def png_bytes_to_numpy(img_bytes: bytes) -> np.ndarray:
+    """Convert a png image to a numpy array"""
+    import cv2 as cv
+    return cv.imdecode(np.frombuffer(img_bytes, np.uint8), -1)
+
+def open_image(path: str) -> np.ndarray:
+    """Open an image from a path"""
+    return cv.imread(path)
 
 def color_in_image(img: np.ndarray) -> bool:
     """Check if the image has color"""
