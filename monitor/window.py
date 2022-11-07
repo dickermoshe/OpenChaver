@@ -62,7 +62,7 @@ class WindowBase:
 
         # Scale image to self.DEFAULT_DPI DPI
         if self.dpi != self.DEFAULT_DPI:
-            logger.debug(f"Scaling image to {self.DEFAULT_DPI} DPI")
+            logger.info(f"Scaling image to {self.DEFAULT_DPI} DPI")
             scale = self.dpi / self.DEFAULT_DPI
             image = cv.resize(image, None, fx=scale, fy=scale)
 
@@ -135,10 +135,10 @@ if os.name == "nt":
             # the window with the border monitor pixels removed
             try:
                 client_rect = self.hwnd.GetClientRect()
-                logger.debug(f"Client rect: {client_rect}")
+                logger.info(f"Client rect: {client_rect}")
 
                 window_rect = self.hwnd.GetWindowRect()
-                logger.debug(f"Window rect: {window_rect}")
+                logger.info(f"Window rect: {window_rect}")
                 client_width = client_rect[2] - client_rect[0]
                 window_width = window_rect[2] - window_rect[0]
                 border = (window_width - client_width) // 2
@@ -149,7 +149,7 @@ if os.name == "nt":
                     window_rect[2] - border,
                     window_rect[3] - border,
                 )
-                logger.debug(f"Calculated coordinates: {coordinates}")
+                logger.info(f"Calculated coordinates: {coordinates}")
 
                 return coordinates
             except:  # noqa: E722
@@ -174,7 +174,7 @@ if os.name == "nt":
                     raise NoWindowFound(window.title)
 
                 if not recursive:
-                    logger.debug(f"Active window: {window.title}")
+                    logger.info(f"Active window: {window.title}")
 
                 # Check if the window is stable
                 for _ in range(int(stable)):

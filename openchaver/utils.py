@@ -1,12 +1,14 @@
 from pathlib import Path
 import logging
 
+logger = logging.getLogger(__name__)
+
 def is_frozen():
     """Check if the program is frozen by PyInstaller or Nuitka"""
     import sys
     pyinstaller = getattr(sys, 'frozen', False)
     nuitka = "__compiled__" in globals()
-    logging.debug(f"Pyinstaller: {pyinstaller}, Nuitka: {nuitka}")
+    logger.debug(f"Pyinstaller: {pyinstaller}, Nuitka: {nuitka}")
     return pyinstaller or nuitka
 
 def delete_old_logs(log_location:Path,keep:list[Path] = []):
@@ -33,13 +35,13 @@ def thread_runner(threads, die_event=None):
 
     # Print threads ids
     for k in threads.keys():
-        logging.info(f"{k}: {threads[k]['thread'].ident}")
+        logger.info(f"{k}: {threads[k]['thread'].ident}")
 
     # Loop -> Restart threads if they die and sleep for 5 seconds
     while True:
         for k in threads.keys():
             if not threads[k]["thread"].is_alive():
-                logging.error(f'Thread "{k}" is dead, restarting...')
+                logger.error(f'Thread "{k}" is dead, restarting...')
                 threads[k]["thread"] = th.Thread(
                     target=threads[k]["target"],
                     args=threads[k]["args"],

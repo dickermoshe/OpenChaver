@@ -1,5 +1,5 @@
 from rest_framework.viewsets import ModelViewSet
-from rest_framework.parsers import MultiPartParser
+from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.decorators import action
@@ -12,7 +12,7 @@ from .serializer import ScreenshotSerializer
 class ScreenshotViewSet(ModelViewSet):
     queryset = Screenshot.objects.all()
     serializer_class = ScreenshotSerializer
-    parser_classes = (MultiPartParser,)
+    parser_classes = (MultiPartParser ,FormParser)
 
     def create(self, request, *args, **kwargs):
         # Create a new screenshot

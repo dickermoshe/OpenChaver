@@ -142,13 +142,12 @@ LOGGING = {
         },
         "file": {
             "level": "DEBUG" if DEBUG else "INFO",
-            "class": "concurrent_log_handler.ConcurrentRotatingFileHandler",
+            "class": "logging.handlers.RotatingFileHandler",
             "filename": get_config_dir() / "openchaver.log",
             "formatter": "verbose",
             "maxBytes": 1024 * 1024 * 5,  # 5 MB
             "backupCount": 5,
             "encoding": "utf8",
-            "use_gzip": True,
         },
     },
     "formatters": {
@@ -158,18 +157,22 @@ LOGGING = {
         "django": {
             "handlers": ["console", "file"],
             "level": "INFO",
+            'propagate': True,
         },
         'core': {
             'handlers': ['console', 'file'],
             'level': 'DEBUG',
+            'propagate': True,
         },
         'monitor': {
             'handlers': ['console', 'file'],
             'level': 'DEBUG',
+            'propagate': True,
         },
         'openchaver': {
             'handlers': ['console', 'file'],
             'level': 'DEBUG',
+            'propagate': True,
         },
     },
 }
@@ -179,6 +182,7 @@ REST_FRAMEWORK = {
     # add multipart/form-data support
     'DEFAULT_PARSER_CLASSES': [
         'rest_framework.parsers.JSONParser',
+        'rest_framework.parsers.FormParser',
         'rest_framework.parsers.MultiPartParser',
         
     ],

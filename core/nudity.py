@@ -75,10 +75,10 @@ class Detector:
     def __init__(self):
         import onnxruntime
         model_file = DETECTION_MODEL_PATH
-        logger.debug(f"Loading detection model from {model_file}")
+        logger.info(f"Loading detection model from {model_file}")
 
         if not model_file.exists():
-            logger.debug(
+            logger.info(
                 f"Downloading detection model from {DETECTION_MODEL_URL}")
             download_model(DETECTION_MODEL_URL, model_file,
                            DETECTION_MODEL_SHA256_HASH)

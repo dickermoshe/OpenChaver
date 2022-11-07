@@ -85,17 +85,17 @@ def count_skin_pixels(image: np.ndarray):
 
 def contains_skin(img: np.ndarray, thresh=1.5) -> bool:
     """Check if the image contains skin beyond a certain threshold"""
-    logger.debug("checking if image contains skin")
+    logger.info("checking if image contains skin")
 
     # Return True if the image is completely black and white
     color = color_in_image(img)
-    logger.debug(f"B&W: {not color}")
+    logger.info(f"B&W: {not color}")
     if not color:
         return True
 
     skin_pixel_count = count_skin_pixels(img)
     skin_ratio = skin_pixel_count / (img.shape[0] * img.shape[1])
-    logger.debug(f"Skin ratio: {skin_ratio}")
+    logger.info(f"Skin ratio: {skin_ratio}")
     return skin_ratio > thresh
 
 
@@ -103,7 +103,7 @@ def get_bounding_boxes(image: np.ndarray) -> list:
     # Check if there are skin pixels in the image
     # This is done to remove images that are definitely not NSFW
     if not contains_skin(image, thresh=0.5):
-        logger.debug("Image does not contain skin. Skipping...")
+        logger.info("Image does not contain skin. Skipping...")
         return []
 
     # Remove all parts of the image that are
@@ -158,7 +158,7 @@ def get_bounding_boxes(image: np.ndarray) -> list:
         if contains_skin(sub_image, thresh=5):
             filtered_bounding_boxes.append((x, y, w, h))
 
-    logger.debug(f"Found {len(filtered_bounding_boxes)} images")
+    logger.info(f"Found {len(filtered_bounding_boxes)} images")
 
     return filtered_bounding_boxes
 
