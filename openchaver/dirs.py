@@ -17,24 +17,13 @@ def get_data_dir(module_name: Optional[str] = None) -> Path:
     return Path(path)
 
 
-def get_cache_dir(module_name: Optional[str] = None) -> Path:
-    cache_dir = appdirs.user_cache_dir("openchaver")
-    path = os.path.join(cache_dir, module_name) if module_name else cache_dir
-
-    if not os.path.exists(path):
-        os.makedirs(path)
-
-    return Path(path)
-
-
 def get_config_dir(module_name: Optional[str] = None) -> Path:
-    config_dir = appdirs.user_config_dir("openchaver")
-    path = os.path.join(config_dir, module_name) if module_name else config_dir
+    path = Path(os.getenv('APPDATA')) / 'openchaver'
 
-    if not os.path.exists(path):
-        os.makedirs(path)
+    if not path.exists():
+        path.mkdir(parents=True)
 
-    return Path(path)
+    return path
 
 
 def get_install_dir() -> Path:

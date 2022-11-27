@@ -40,7 +40,7 @@ class WindowMonitor:
             "screenshot_type": screenshot_type,
         }
         # Set the image name to the window title
-        files = {"image_file": (f'{uuid4}.png', png_bytes, "image/png")} if png_bytes else None
+        files = {"image_file": (f'{uuid4()}.png', png_bytes, "image/png")} if png_bytes else None
 
         response = requests.post(
             f"http://localhost:{PORT}/api/screenshots/", data=data, files=files)
