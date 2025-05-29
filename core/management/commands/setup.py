@@ -27,25 +27,20 @@ logger = logging.getLogger(__name__)
 
 
 def create_service(name: str, exe: str | Path, args: str, log_file: Path):
-    """
-    This function creates a service using nssm.exe
-    name: The name of the service
-    exe: The executable to run
-    args: The arguments to pass to the executable
-    log_file: The log file to write to
-    """
-    # Migrate the database
+    ...
     logger.info("Migrating the database")
     subprocess.run(MIGRATE_COMMAND)
 
- # Make Superuser
-if TESTING:
-    from django.contrib.auth.models import User
-    try:
-        if not User.objects.filter(username='admin').exists():
-            User.objects.create_superuser('admin', 'admin@example.com', 'pass')
-    except Exception as e:
-        logger.exception(e)
+    # Make Superuser
+    if TESTING:
+        from django.contrib.auth.models import User
+        try:
+            if not User.objects.filter(username='admin').exists():
+                User.objects.create_superuser('admin', 'admin@example.com', 'pass')
+        except Exception as e:
+            logger.exception(e)
+
+
 
 
 
